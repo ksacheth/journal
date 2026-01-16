@@ -5,6 +5,7 @@ import { EntryModel } from "./models/Entry";
 import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "./config";
 import { authHandle } from "./middleware/auth";
+import bcrypt from "bcryptjs";
 
 const app = express();
 app.use(express.json());
@@ -42,9 +43,11 @@ app.post("/api/signup", async (req, res) => {
       });
     }
 
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     const user = await UserModel.create({
       username: username,
-      password: password,
+      password: hashedPassword,
     });
 
     const token = jwt.sign({ userId: user.id }, JWT_SECRET);
@@ -73,7 +76,9 @@ app.post("/api/signin", async (req, res) => {
     });
   }
 
-  if (existingUser.password === password) {
+  const passwordMatch = await bcrypt.compare(password, existingUser.password);
+
+  if (passwordMatch) {
     // return a jwt
     const token = jwt.sign({ userId: existingUser.id }, JWT_SECRET);
 

@@ -5,7 +5,7 @@ const ObjectId = Schema.ObjectId;
 
 const EntrySchema = new Schema({
   userId: { type: ObjectId, ref: "Users", required: true },
-  date: { type: Date, required: [true, "Date is required"], unique: true },
+  date: { type: Date, required: [true, "Date is required"] },
   title: { type: String },
   text: { type: String },
   mood: {
@@ -27,5 +27,7 @@ const EntrySchema = new Schema({
     default: [],
   },
 });
+
+EntrySchema.index({ userId: 1, date: 1 }, { unique: true });
 
 export const EntryModel = mongoose.model("Entries", EntrySchema);
