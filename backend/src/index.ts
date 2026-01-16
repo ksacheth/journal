@@ -32,6 +32,17 @@ app.post("/api/signup", async (req, res) => {
   const username = req.body.username;
   const password = req.body.password;
 
+  if (
+    typeof username !== "string" ||
+    username.trim().length === 0 ||
+    typeof password !== "string" ||
+    password.trim().length === 0
+  ) {
+    return res.status(400).json({
+      message: "Invalid input",
+    });
+  }
+
   try {
     const existingUser = await UserModel.findOne({
       username: username,
@@ -66,12 +77,23 @@ app.post("/api/signin", async (req, res) => {
   const username = req.body.username;
   const password = req.body.password;
 
+  if (
+    typeof username !== "string" ||
+    username.trim().length === 0 ||
+    typeof password !== "string" ||
+    password.trim().length === 0
+  ) {
+    return res.status(400).json({
+      message: "Invalid input",
+    });
+  }
+
   const existingUser = await UserModel.findOne({
     username: username,
   });
 
   if (!existingUser) {
-    return res.status(411).json({
+    return res.status(401).json({
       message: "Access Denied",
     });
   }
@@ -86,7 +108,7 @@ app.post("/api/signin", async (req, res) => {
       token,
     });
   } else {
-    return res.status(411).json({
+    return res.status(401).json({
       message: "Invalid Credentials",
     });
   }
