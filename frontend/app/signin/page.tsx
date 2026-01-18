@@ -102,7 +102,7 @@ export default function SignIn() {
 
           <div className="mt-6 text-center">
             <span className="text-sm text-text-tertiary">
-              Don't have an account?{" "}
+              Don&apos;t have an account?{" "}
             </span>
             <button
               type="button"
