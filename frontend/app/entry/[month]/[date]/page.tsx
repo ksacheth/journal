@@ -220,14 +220,14 @@ export default function EntryPage() {
 
   if (loading || !entryDate) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0E0C1B]">
-        <div className="text-white/50">Loading...</div>
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-text-tertiary">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0E0C1B]">
+    <div className="min-h-screen">
       <JournalEntryModal
         key={entryDate.toISOString()}
         isOpen={true}

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
+import { ChevronLeft, ChevronRight, CalendarDays, LogOut } from "lucide-react";
 
 interface Entry {
   date: string;
@@ -23,14 +24,37 @@ const monthAbbr = [
   "Dec",
 ];
 
-const daysOfWeek = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
+const monthsFull = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 const moodColors: Record<string, string> = {
-  excellent: "#10B981", // green
-  good: "#3B82F6", // blue
-  neutral: "#F59E0B", // orange
-  bad: "#F97316", // orange-red
-  terrible: "#EF4444", // red
+  excellent: "#00FF80",
+  good: "#B57EDC",
+  neutral: "#EF9B0F",
+  bad: "#FF9966",
+  terrible: "#FF0080",
+};
+
+const moodEmojis: Record<string, string> = {
+  excellent: "😄",
+  good: "😊",
+  neutral: "😐",
+  bad: "😞",
+  terrible: "😢",
 };
 
 export default function CalendarPage() {
@@ -72,7 +96,6 @@ export default function CalendarPage() {
     return { month, year: fallback.year };
   };
 
-  // Initialize state based on URL param to avoid flash
   const getInitialMonth = () => {
     return parseMonthParam(monthParam);
   };
@@ -93,7 +116,6 @@ export default function CalendarPage() {
   };
 
   useEffect(() => {
-    // Parse month from URL (format: "2024-10" or "10")
     const { month: monthNum, year } = parseMonthParam(monthParam);
 
     setCurrentMonth(monthNum);
@@ -116,9 +138,9 @@ export default function CalendarPage() {
         const response = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/api/entries/${year}-${monthStr}`,
           {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
           }
         );
 
@@ -144,7 +166,6 @@ export default function CalendarPage() {
       }
     };
 
-    // Fetch entries for the month
     fetchEntries(year, monthNum);
   }, [monthParam]);
 
@@ -160,6 +181,12 @@ export default function CalendarPage() {
     );
   };
 
+  const handleSignOut = () => {
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem("authToken");
+      router.push("/signin");
+    }
+  };
 
   const getDaysInMonth = (year: number, month: number) => {
     return new Date(year, month + 1, 0).getDate();
@@ -167,7 +194,6 @@ export default function CalendarPage() {
 
   const getFirstDayOfMonth = (year: number, month: number) => {
     const firstDay = new Date(year, month, 1).getDay();
-    // Convert Sunday (0) to 6, Monday (1) to 0, etc.
     return firstDay === 0 ? 6 : firstDay - 1;
   };
 
@@ -195,9 +221,28 @@ export default function CalendarPage() {
     router.push(`/entry/${currentYear}-${monthStr}/${dateStr}`);
   };
 
-  const handleMonthChange = (monthIndex: number) => {
-    const monthStr = String(monthIndex + 1).padStart(2, "0");
-    router.push(`/entry/${currentYear}-${monthStr}`);
+  const handleMonthChange = (direction: "prev" | "next") => {
+    let newMonth = currentMonth;
+    let newYear = currentYear;
+
+    if (direction === "prev") {
+      if (currentMonth === 0) {
+        newMonth = 11;
+        newYear = currentYear - 1;
+      } else {
+        newMonth = currentMonth - 1;
+      }
+    } else {
+      if (currentMonth === 11) {
+        newMonth = 0;
+        newYear = currentYear + 1;
+      } else {
+        newMonth = currentMonth + 1;
+      }
+    }
+
+    const monthStr = String(newMonth + 1).padStart(2, "0");
+    router.push(`/entry/${newYear}-${monthStr}`);
   };
 
   const daysInMonth = getDaysInMonth(currentYear, currentMonth);
@@ -206,127 +251,152 @@ export default function CalendarPage() {
   const emptyDays = Array.from({ length: firstDay }, (_, i) => i);
 
   return (
-    <div className="min-h-screen bg-[#0E0C1B] p-8">
-      <div className="mx-auto max-w-4xl">
-        {/* Month Selector */}
-        <div className="mb-8 flex items-center justify-between">
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
-            {monthAbbr.map((month, index) => {
-              const isSelected = index === currentMonth;
-              return (
-                <button
-                  key={index}
-                  onClick={() => handleMonthChange(index)}
-                  className={`whitespace-nowrap px-4 py-2 text-sm font-medium transition-colors ${
-                    isSelected
-                      ? "rounded-lg text-white"
-                      : "text-white/70 hover:text-white"
-                  }`}
-                  style={
-                    isSelected
-                      ? { backgroundColor: "#3617CE" }
-                      : { backgroundColor: "transparent" }
-                  }
-                >
-                  {month}
-                </button>
-              );
-            })}
-          </div>
+    <div className="min-h-screen p-4 sm:p-6 lg:p-8">
+      <div className="mx-auto max-w-6xl">
+        {/* Header */}
+        <div className="bounce-in mb-8 flex items-center justify-between">
           <button
             onClick={() => router.push("/entry")}
-            className="text-white/50 hover:text-white transition-colors shrink-0 ml-2"
+            className="smooth-transition flex items-center gap-2 rounded-xl border-2 border-accent bg-surface px-5 py-3 text-sm font-bold text-text-primary shadow-md hover:scale-105 hover:border-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-accent/10 hover:shadow-lg"
           >
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 20 20"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M6 2V4M14 2V4M3 10H17M5 4H15C16.1046 4 17 4.89543 17 6V16C17 17.1046 16.1046 18 15 18H5C3.89543 18 3 17.1046 3 16V6C3 4.89543 3.89543 4 5 4Z"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+            <CalendarDays className="h-5 w-5 text-accent" />
+            All Months
+          </button>
+          
+          <button
+            onClick={handleSignOut}
+            className="smooth-transition flex items-center gap-2 rounded-xl border-2 border-primary/30 bg-surface px-5 py-3 text-sm font-bold text-text-primary shadow-md hover:scale-105 hover:border-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-primary/20 hover:shadow-lg"
+          >
+            <LogOut className="h-5 w-5 text-primary" />
+            Sign Out
+          </button>
+        </div>
+
+        {/* Month Navigation */}
+        <div className="mb-8 flex items-center justify-between">
+          <button
+            onClick={() => handleMonthChange("prev")}
+            className="smooth-transition flex h-12 w-12 items-center justify-center rounded-xl border-2 border-secondary bg-surface text-secondary shadow-md hover:scale-110 hover:border-primary hover:bg-gradient-to-br hover:from-primary/10 hover:to-secondary/10 hover:text-primary hover:shadow-lg"
+          >
+            <ChevronLeft className="h-6 w-6" />
+          </button>
+          
+          <div className="text-center">
+            <h1 className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-4xl font-bold text-transparent">
+              {monthsFull[currentMonth]} {currentYear}
+            </h1>
+            <p className="mt-2 text-base font-medium text-text-secondary">
+              <span className="inline-block rounded-full bg-gradient-to-r from-accent/20 to-primary/20 px-4 py-1">
+                {entries.length} {entries.length === 1 ? "entry" : "entries"} 🎨
+              </span>
+            </p>
+          </div>
+          
+          <button
+            onClick={() => handleMonthChange("next")}
+            className="smooth-transition flex h-12 w-12 items-center justify-center rounded-xl border-2 border-secondary bg-surface text-secondary shadow-md hover:scale-110 hover:border-primary hover:bg-gradient-to-br hover:from-primary/10 hover:to-secondary/10 hover:text-primary hover:shadow-lg"
+          >
+            <ChevronRight className="h-6 w-6" />
           </button>
         </div>
 
         {error && (
-          <div className="mb-4 rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-200">
+          <div className="mb-6 rounded-xl border-2 border-primary/40 bg-primary/10 p-4 text-sm font-medium text-primary">
             {error}
           </div>
         )}
 
-        {/* Days of Week */}
-        <div className="mb-4 grid grid-cols-7 gap-2">
-          {daysOfWeek.map((day) => (
+        {/* Calendar */}
+        <div className="card-surface overflow-hidden p-6 sm:p-8">
+          {/* Days of Week */}
+          <div className="mb-6 grid grid-cols-7 gap-2">
+            {daysOfWeek.map((day, i) => (
+              <div
+                key={day}
+                className="text-center text-xs font-bold uppercase tracking-widest"
+                style={{
+                  color: moodColors[Object.keys(moodColors)[i % 5]],
+                }}
+              >
+                {day}
+              </div>
+            ))}
+          </div>
+
+          {/* Calendar Grid */}
+          {loading ? (
+            <div className="py-16 text-center">
+              <div className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-lg font-bold text-transparent">Loading your colorful calendar... ✨</div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-7 gap-2 sm:gap-3">
+              {emptyDays.map((_, index) => (
+                <div key={`empty-${index}`} className="aspect-square" />
+              ))}
+              {days.map((day) => {
+                const mood = getEntryMood(day);
+                const today = isToday(day);
+
+                return (
+                  <button
+                    key={day}
+                    onClick={() => handleDateClick(day)}
+                    className={`smooth-transition group relative aspect-square overflow-hidden rounded-xl border-2 p-2 ${
+                      today
+                        ? "pulse-glow border-primary bg-gradient-to-br from-primary/20 to-accent/20"
+                        : mood
+                        ? "border-border bg-surface hover:border-primary"
+                        : "border-border/50 bg-surface/50 hover:border-accent"
+                    } hover:scale-105 hover:shadow-lg`}
+                  >
+                    <div className="flex h-full flex-col items-center justify-center">
+                      <span
+                        className={`text-base font-bold sm:text-lg ${
+                          today
+                            ? "bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent"
+                            : mood
+                            ? "text-text-primary"
+                            : "text-text-tertiary"
+                        }`}
+                      >
+                        {day}
+                      </span>
+                      {mood && (
+                        <div className="mt-1 flex items-center gap-1">
+                          <span className="text-lg">{moodEmojis[mood]}</span>
+                        </div>
+                      )}
+                      {today && !mood && (
+                        <div className="mt-1 text-xs font-bold text-primary">
+                          Today
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Legend */}
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-4 text-sm font-medium">
+          {Object.entries(moodEmojis).map(([mood, emoji]) => (
             <div
-              key={day}
-              className="text-center text-xs sm:text-sm font-medium text-white"
+              key={mood}
+              className="flex items-center gap-2 rounded-full border-2 px-4 py-2 shadow-sm"
+              style={{
+                borderColor: moodColors[mood],
+                backgroundColor: `${moodColors[mood]}10`,
+              }}
             >
-              {day}
+              <span className="text-base">{emoji}</span>
+              <span className="capitalize" style={{ color: moodColors[mood] }}>
+                {mood}
+              </span>
             </div>
           ))}
         </div>
-
-        {/* Calendar Grid */}
-        {loading ? (
-          <div className="text-center text-white/50">Loading...</div>
-        ) : (
-          <div className="grid grid-cols-7 gap-1 sm:gap-2">
-            {emptyDays.map((_, index) => (
-              <div key={`empty-${index}`} className="aspect-square" />
-            ))}
-            {days.map((day) => {
-              const mood = getEntryMood(day);
-              const today = isToday(day);
-
-              return (
-                <button
-                  key={day}
-                  onClick={() => handleDateClick(day)}
-                  className="group relative aspect-square rounded-xl sm:rounded-2xl bg-[#050408] p-1 sm:p-2 text-white transition-all hover:bg-[#0a0712] hover:scale-105"
-                  style={
-                    today
-                      ? {
-                          backgroundColor: mood
-                            ? moodColors[mood] || "#3617CE"
-                            : "#3617CE",
-                        }
-                      : {}
-                  }
-                >
-                  <div className="flex h-full flex-col items-center justify-center">
-                    <span className="text-lg sm:text-2xl font-semibold">{day}</span>
-                    {today && (
-                      <span
-                        className="mt-1 rounded px-1 sm:px-2 py-0.5 text-[10px] sm:text-xs font-medium"
-                        style={{
-                          backgroundColor: "rgba(0, 0, 0, 0.3)",
-                          color: "#FFFFFF",
-                        }}
-                      >
-                        TODAY
-                      </span>
-                    )}
-                    {mood && !today && (
-                      <div
-                        className="mt-1 h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full"
-                        style={{
-                          backgroundColor: moodColors[mood] || "#3617CE",
-                        }}
-                      />
-                    )}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        )}
       </div>
     </div>
   );

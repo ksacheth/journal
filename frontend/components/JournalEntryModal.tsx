@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { X, Hash, Plus, Check, Sparkles } from "lucide-react";
 
 interface Todo {
   id: string;
@@ -29,11 +30,11 @@ interface JournalEntryModalProps {
 }
 
 const moods = [
-  { emoji: "😢", value: "terrible", label: "Very sad" },
-  { emoji: "😞", value: "bad", label: "Sad" },
-  { emoji: "😐", value: "neutral", label: "Neutral" },
-  { emoji: "😊", value: "good", label: "Happy" },
-  { emoji: "😄", value: "excellent", label: "Very happy" },
+  { emoji: "😢", value: "terrible", label: "Very sad", color: "#FF0080" },
+  { emoji: "😞", value: "bad", label: "Sad", color: "#FF9966" },
+  { emoji: "😐", value: "neutral", label: "Neutral", color: "#EF9B0F" },
+  { emoji: "😊", value: "good", label: "Happy", color: "#B57EDC" },
+  { emoji: "😄", value: "excellent", label: "Very happy", color: "#00FF80" },
 ];
 
 export default function JournalEntryModal({
@@ -53,12 +54,9 @@ export default function JournalEntryModal({
   const [todos, setTodos] = useState<Todo[]>(initialEntry?.todos || []);
   const [newTodo, setNewTodo] = useState<string>("");
   const [isSaving, setIsSaving] = useState<boolean>(false);
-  const [currentDate] = useState<Date>(
-    initialDate || new Date()
-  );
+  const [currentDate] = useState<Date>(initialDate || new Date());
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
 
-  // Update current time every second
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
@@ -69,27 +67,27 @@ export default function JournalEntryModal({
 
   const formatDate = (date: Date, time: Date) => {
     const days = [
-      "SUNDAY",
-      "MONDAY",
-      "TUESDAY",
-      "WEDNESDAY",
-      "THURSDAY",
-      "FRIDAY",
-      "SATURDAY",
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
     ];
     const months = [
-      "JANUARY",
-      "FEBRUARY",
-      "MARCH",
-      "APRIL",
-      "MAY",
-      "JUNE",
-      "JULY",
-      "AUGUST",
-      "SEPTEMBER",
-      "OCTOBER",
-      "NOVEMBER",
-      "DECEMBER",
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
     ];
     const dayOfWeek = days[date.getDay()];
     const month = months[date.getMonth()];
@@ -161,7 +159,6 @@ export default function JournalEntryModal({
         tags: tags,
         todos: todos,
       });
-      // Reset form
       setText("");
       setTags([]);
       setTodos([]);
@@ -184,208 +181,200 @@ export default function JournalEntryModal({
 
   if (!isOpen) return null;
 
+  const selectedMoodColor = moods.find(m => m.value === selectedMood)?.color || "#B57EDC";
+
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative w-full max-w-2xl rounded-2xl bg-background p-6 shadow-2xl sm:p-8">
-          {/* Header - Centered */}
-          <div
-            className="mb-6 text-center text-sm font-medium text-primary"
+        {/* Backdrop */}
+        <div
+          className="fixed inset-0 bg-gradient-to-br from-primary/20 via-accent/20 to-secondary/20 backdrop-blur-md"
+          onClick={handleDiscard}
+        />
+
+        {/* Modal */}
+        <div className="glass-effect bounce-in relative w-full max-w-3xl rounded-3xl p-8 sm:p-10 shadow-2xl">
+          {/* Close Button */}
+          <button
+            onClick={handleDiscard}
+            className="smooth-transition absolute right-6 top-6 flex h-10 w-10 items-center justify-center rounded-xl border-2 border-primary/30 bg-surface text-primary hover:scale-110 hover:border-primary hover:bg-primary hover:text-white hover:rotate-90"
           >
-            {formatDate(currentDate, currentTime)}
+            <X className="h-5 w-5" />
+          </button>
+
+          {/* Header */}
+          <div className="mb-8 text-center">
+            <div className="mb-4 flex items-center justify-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              <h2 className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-base font-bold uppercase tracking-wider text-transparent">
+                {formatDate(currentDate, currentTime)}
+              </h2>
+              <Sparkles className="h-5 w-5 text-accent" />
+            </div>
           </div>
 
           {errorMessage && (
-            <div className="mb-4 rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-200">
+            <div className="mb-6 rounded-xl border-2 border-primary/40 bg-primary/10 p-4 text-sm font-medium text-primary">
               {errorMessage}
             </div>
           )}
 
           {/* Mood Selector */}
-          <div className="mb-6 flex flex-wrap items-center justify-center gap-2 sm:gap-4">
+          <div className="mb-8 flex flex-wrap items-center justify-center gap-4">
             {moods.map((mood) => (
               <button
                 key={mood.value}
                 onClick={() => setSelectedMood(mood.value)}
-                className={`relative flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full text-xl sm:text-2xl transition-all duration-200 ${
+                className={`smooth-transition flex h-16 w-16 items-center justify-center rounded-2xl border-2 text-4xl ${
                   selectedMood === mood.value
-                    ? "scale-110 grayscale-0"
-                    : "grayscale hover:grayscale-0 hover:scale-105 opacity-70"
+                    ? "scale-125 shadow-xl"
+                    : "opacity-50 hover:scale-110 hover:opacity-100"
                 }`}
+                style={{
+                  borderColor: selectedMood === mood.value ? mood.color : 'transparent',
+                  backgroundColor: selectedMood === mood.value ? `${mood.color}20` : 'transparent',
+                  boxShadow: selectedMood === mood.value ? `0 0 30px ${mood.color}40` : 'none',
+                }}
                 aria-label={mood.label}
               >
-                <span
-                  style={
-                    selectedMood === mood.value
-                      ? {
-                          filter: `drop-shadow(0 0 8px var(--color-primary)) drop-shadow(0 0 12px var(--color-primary))`,
-                          textShadow: "0 0 8px var(--color-primary), 0 0 12px var(--color-primary)",
-                        }
-                      : {}
-                  }
-                >
-                  {mood.emoji}
-                </span>
+                {mood.emoji}
               </button>
             ))}
           </div>
 
-                    {/* Text Input Area */}
-                    <div className="mb-6">
-                      <textarea
-                        value={text}
-                        onChange={(e) => setText(e.target.value)}
-                        placeholder="What's on your mind today?"
-                        className="w-full resize-none rounded-lg bg-surface p-4 text-base sm:text-sm text-white focus:outline-none focus:ring-2 h-40 sm:h-60 focus:ring-primary focus:border-primary"
-                        style={
-                          {
-                            "--tw-placeholder-opacity": "0.5",
-                          } as React.CSSProperties & { "--tw-placeholder-opacity": string }
-                        }
-                      />
-                    </div>
-          
-                    {/* Todos Section */}
-                    <div className="mb-6">
-                      <div className="space-y-2">
-                        {todos.map((todo) => (
-                          <div
-                            key={todo.id}
-                            className="flex items-center gap-3 rounded-lg bg-surface p-3"
-                          >
-                            <button
-                              type="button"
-                              onClick={() => handleToggleTodo(todo.id)}
-                              className="flex h-5 w-5 items-center justify-center rounded-full border-2 bg-transparent transition-all hover:opacity-80 border-primary"
-                              aria-label={`Toggle todo ${todo.text}`}
-                            >
-                              {todo.completed && (
-                                <svg
-                                  width="12"
-                                  height="12"
-                                  viewBox="0 0 12 12"
-                                  fill="none"
-                                  xmlns="http://www.w3.org/2000/svg"
-                                >
-                                  <path
-                                    d="M2 6L5 9L10 2"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    className="text-primary"
-                                  />
-                                </svg>
-                              )}
-                            </button>
-                            <span
-                              className={`flex-1 text-sm text-white ${
-                                todo.completed ? "line-through opacity-50" : ""
-                              }`}
-                              style={todo.completed ? { color: "var(--color-primary)" } : {}}
-                            >
-                              {todo.text}
-                            </span>
-                            <button
-                              onClick={() => handleRemoveTodo(todo.id)}
-                              className="hover:opacity-80 transition-opacity text-primary"
-                              aria-label={`Remove todo ${todo.text}`}
-                            >
-                              ×
-                            </button>
-                          </div>
-                        ))}
-                        <input
-                          type="text"
-                          value={newTodo}
-                          onChange={(e) => setNewTodo(e.target.value)}
-                          onKeyPress={handleTodoKeyPress}
-                          placeholder="Add a todo..."
-                          className="w-full rounded-lg bg-surface px-3 py-2 text-base sm:text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary"
-                          style={
-                            {
-                              "--tw-placeholder-opacity": "0.5",
-                            } as React.CSSProperties & {
-                              "--tw-placeholder-opacity": string;
-                            }
-                          }
-                        />
-                      </div>
-                    </div>
-          
-                    {/* Tagging Section */}
-                    <div className="mb-6">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-primary">#</span>
-                        {tags.map((tag) => (
-                          <span
-                            key={tag}
-                            className="flex items-center gap-2 rounded-full px-3 py-1 text-sm text-primary"
-                            style={{
-                              backgroundColor: "rgba(54, 23, 206, 0.3)",
-                            }}
-                          >
-                            #{tag}
-                            <button
-                              onClick={() => handleRemoveTag(tag)}
-                              className="hover:opacity-80 transition-opacity text-primary"
-                              aria-label={`Remove tag ${tag}`}
-                            >
-                              ×
-                            </button>
-                          </span>
-                        ))}
-                        <input
-                          type="text"
-                          value={newTag}
-                          onChange={(e) => setNewTag(e.target.value)}
-                          onKeyPress={handleKeyPress}
-                          placeholder="Add tag..."
-                          className="flex-1 rounded-lg bg-surface px-3 py-1 text-base sm:text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary"
-                          style={
-                            {
-                              "--tw-placeholder-opacity": "0.5",
-                            } as React.CSSProperties & {
-                              "--tw-placeholder-opacity": string;
-                            }
-                          }
-                        />
-                      </div>
-                    </div>
-        {/* Status and Actions */}
-        <div
-          className="flex items-center justify-between border-t pt-6 border-primary/30"
-        >
-          <div
-            className="flex items-center gap-2 text-sm text-primary"
-          >
-            {isSaving && (
-              <>
-                <div
-                  className="h-2 w-2 animate-pulse rounded-full bg-primary"
-                ></div>
-                <span>Saving to cloud...</span>
-              </>
-            )}
+          {/* Text Input */}
+          <div className="mb-6">
+            <textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Pour your heart out... ✨"
+              className="w-full resize-none rounded-2xl border-2 border-border bg-surface p-6 text-base font-medium text-text-primary placeholder-text-tertiary focus:border-primary focus:outline-hidden focus:ring-4 focus:ring-primary/20 h-56"
+              style={{
+                borderColor: selectedMoodColor + '40',
+              }}
+            />
           </div>
-          <div className="flex gap-4">
-            <button
-              onClick={handleDiscard}
-              className="px-6 py-2 text-sm font-medium hover:opacity-80 transition-opacity text-primary"
-            >
-              Discard
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={isSaving}
-              className="rounded-lg px-6 py-2 text-sm font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors bg-primary hover:bg-primary/80"
-            >
-              Done
-            </button>
+
+          {/* Todos */}
+          {todos.length > 0 && (
+            <div className="mb-6 space-y-2">
+              {todos.map((todo) => (
+                <div
+                  key={todo.id}
+                  className="smooth-transition flex items-center gap-3 rounded-xl border-2 border-accent/20 bg-surface p-4 hover:border-accent/40 hover:shadow-md"
+                >
+                  <button
+                    type="button"
+                    onClick={() => handleToggleTodo(todo.id)}
+                    className={`smooth-transition flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border-2 ${
+                      todo.completed
+                        ? "border-success bg-success"
+                        : "border-accent bg-transparent hover:border-success"
+                    }`}
+                  >
+                    {todo.completed && <Check className="h-4 w-4 text-white" />}
+                  </button>
+                  <span
+                    className={`flex-1 text-sm font-medium ${
+                      todo.completed
+                        ? "text-text-tertiary line-through"
+                        : "text-text-primary"
+                    }`}
+                  >
+                    {todo.text}
+                  </span>
+                  <button
+                    onClick={() => handleRemoveTodo(todo.id)}
+                    className="smooth-transition text-text-tertiary hover:scale-110 hover:text-primary"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="mb-6">
+            <div className="flex gap-3">
+              <input
+                type="text"
+                value={newTodo}
+                onChange={(e) => setNewTodo(e.target.value)}
+                onKeyPress={handleTodoKeyPress}
+                placeholder="Add a task... ✓"
+                className="flex-1 rounded-xl border-2 border-secondary/30 bg-surface px-4 py-3 text-sm font-medium text-text-primary placeholder-text-tertiary focus:border-secondary focus:outline-hidden focus:ring-4 focus:ring-secondary/20"
+              />
+              <button
+                onClick={handleAddTodo}
+                className="smooth-transition flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border-2 border-secondary bg-gradient-to-br from-secondary to-warning text-white hover:scale-110 hover:shadow-lg"
+              >
+                <Plus className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Tags */}
+          <div className="mb-8">
+            <div className="flex flex-wrap items-center gap-2">
+              <Hash className="h-5 w-5 text-accent" />
+              {tags.map((tag, i) => (
+                <span
+                  key={tag}
+                  className="smooth-transition flex items-center gap-2 rounded-full border-2 px-4 py-1.5 text-sm font-bold shadow-sm hover:scale-105"
+                  style={{
+                    borderColor: moods[i % moods.length].color,
+                    backgroundColor: `${moods[i % moods.length].color}15`,
+                    color: moods[i % moods.length].color,
+                  }}
+                >
+                  {tag}
+                  <button
+                    onClick={() => handleRemoveTag(tag)}
+                    className="hover:scale-125"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              ))}
+              <input
+                type="text"
+                value={newTag}
+                onChange={(e) => setNewTag(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="Add a colorful tag... 🏷️"
+                className="min-w-[180px] flex-1 rounded-xl border-2 border-accent/30 bg-surface px-4 py-2 text-sm font-medium text-text-primary placeholder-text-tertiary focus:border-accent focus:outline-hidden focus:ring-4 focus:ring-accent/20"
+              />
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center justify-between border-t-2 border-border pt-6">
+            <div className="flex items-center gap-2 text-sm font-medium text-text-tertiary">
+              {isSaving && (
+                <>
+                  <div className="h-2.5 w-2.5 animate-pulse rounded-full bg-primary" />
+                  <span>Saving your colorful memories...</span>
+                </>
+              )}
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={handleDiscard}
+                className="smooth-transition rounded-xl border-2 border-border bg-surface px-6 py-3 text-sm font-bold text-text-secondary hover:scale-105 hover:border-primary hover:bg-primary/10 hover:text-primary"
+              >
+                Discard
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={isSaving}
+                className="smooth-transition rounded-xl bg-gradient-to-r from-primary via-accent to-secondary px-8 py-3 text-sm font-bold text-white shadow-lg hover:scale-105 hover:shadow-glow disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Save Entry ✨
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
     </div>
   );
 }
