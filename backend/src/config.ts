@@ -1,3 +1,10 @@
+import pino from "pino";
+
+export const logger = pino({
+  level: process.env.LOG_LEVEL ?? "info",
+  base: { service: "journal-backend" },
+});
+
 if (!process.env.MONGODB_URL) {
   throw new Error("Set the variable MONGODB_URL");
 }

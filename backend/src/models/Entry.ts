@@ -29,5 +29,7 @@ const EntrySchema = new Schema({
 });
 
 EntrySchema.index({ userId: 1, date: 1 }, { unique: true });
+EntrySchema.index({ userId: 1, mood: 1, date: -1 });
+EntrySchema.index({ userId: 1, tags: 1, date: -1 });
 
 export const EntryModel = mongoose.model("Entries", EntrySchema);

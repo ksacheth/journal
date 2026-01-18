@@ -1,11 +1,21 @@
-import express from "express";
+import express, { type ErrorRequestHandler } from "express";
 import cors from "cors";
 import { connectDb } from "./db";
 import authRoutes from "./routes/auth";
 import entryRoutes from "./routes/entry";
+import { logger } from "./config";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+process.on("unhandledRejection", (reason) => {
+  logger.error({ err: reason }, "Unhandled promise rejection");
+});
+
+process.on("uncaughtException", (error) => {
+  logger.fatal({ err: error }, "Uncaught exception");
+  process.exit(1);
+});
 
 app.use(express.json());
 
@@ -25,7 +35,7 @@ app.use(
 );
 
 connectDb().catch((error) => {
-  console.error("Failed to connect to database", error);
+  logger.error({ err: error }, "Failed to connect to database");
 });
 
 app.get("/api/health", async (req, res) => {
@@ -34,7 +44,8 @@ app.get("/api/health", async (req, res) => {
     return res.json({
       message: "The database is healthy",
     });
-  } catch (e) {
+  } catch (error) {
+    logger.error({ err: error }, "Health check database error");
     return res.json({
       message: "Error while connecting to database",
     });
@@ -45,6 +56,20 @@ app.get("/api/health", async (req, res) => {
 app.use("/api", authRoutes);
 app.use("/api", entryRoutes);
 
+const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
+  logger.error(
+    {
+      err,
+      method: req.method,
+      path: req.path,
+    },
+    "Unhandled server error"
+  );
+  return res.status(500).json({ error: "Internal server error" });
+};
+
+app.use(errorHandler);
+
 app.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
+  logger.info({ port: PORT }, "Server listening");
 });

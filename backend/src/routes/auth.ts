@@ -2,7 +2,7 @@ import express from "express";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { UserModel } from "../models/User";
-import { JWT_SECRET } from "../config";
+import { JWT_SECRET, logger } from "../config";
 import { signupSchema, signinSchema } from "../validators";
 
 const router = express.Router();
@@ -42,7 +42,8 @@ router.post("/signup", async (req, res) => {
     return res.json({
       token,
     });
-  } catch (e) {
+  } catch (error) {
+    logger.error({ err: error, username }, "Signup error");
     return res.status(500).json({
       message: "Error creating user",
     });
@@ -85,7 +86,7 @@ router.post("/signin", async (req, res) => {
       });
     }
   } catch (error) {
-    console.error("Signin error", error);
+    logger.error({ err: error, username }, "Signin error");
     return res.status(500).json({ message: "Internal Server Error" });
   }
 });
