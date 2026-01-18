@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { fetchClient } from "@/lib/api";
 
 export default function Signup() {
   const router = useRouter();
@@ -25,24 +26,11 @@ export default function Signup() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/signup`,
-        {
+      const data = await fetchClient("/api/signup", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({ username, password }),
-        }
-      );
+      });
 
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        const message = data.message ?? "Unable to sign up.";
-        throw new Error(message);
-      }
-
-      const data = await response.json();
       if (!data.token) {
         throw new Error("No token returned from server.");
       }
@@ -61,8 +49,8 @@ export default function Signup() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#0E0C1B] p-4 sm:p-6">
-      <div className="w-full max-w-md rounded-2xl bg-[#050408] p-6 sm:p-8 text-white shadow-xl">
+    <div className="flex min-h-screen items-center justify-center bg-background p-4 sm:p-6">
+      <div className="w-full max-w-md rounded-2xl bg-surface p-6 sm:p-8 text-white shadow-xl">
         <h1 className="text-2xl font-semibold">Journal Sign Up</h1>
         <p className="mt-2 text-sm text-white/60">
           Create an account to start journaling.
@@ -100,7 +88,7 @@ export default function Signup() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full rounded-lg bg-[#3617CE] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#5a1fc7] disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/80 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSubmitting ? "Signing up..." : "Sign up"}
           </button>
@@ -109,7 +97,7 @@ export default function Signup() {
             <button
               type="button"
               onClick={() => router.push("/signin")}
-              className="text-[#3617CE] hover:underline"
+              className="text-primary hover:underline"
             >
               Sign in
             </button>
