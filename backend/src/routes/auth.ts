@@ -49,6 +49,9 @@ router.post("/signup", async (req, res) => {
   }
 });
 
+// Pre-calculated dummy hash for timing attack protection
+const DUMMY_HASH = "$2a$10$abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklm";
+
 router.post("/signin", async (req, res) => {
   const validationResult = signinSchema.safeParse(req.body);
 
@@ -66,15 +69,11 @@ router.post("/signin", async (req, res) => {
       username: username,
     }).select("+password");
 
-    if (!existingUser) {
-      return res.status(401).json({
-        message: "Access Denied",
-      });
-    }
+    // Always perform a comparison to prevent timing attacks
+    const targetHash = existingUser ? existingUser.password : DUMMY_HASH;
+    const passwordMatch = await bcrypt.compare(password, targetHash);
 
-    const passwordMatch = await bcrypt.compare(password, existingUser.password);
-
-    if (passwordMatch) {
+    if (existingUser && passwordMatch) {
       const token = jwt.sign({ userId: existingUser.id }, JWT_SECRET);
 
       return res.json({

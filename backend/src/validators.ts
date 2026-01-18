@@ -14,7 +14,7 @@ export const entrySchema = z.object({
   title: z.string().optional(),
   text: z.string().optional(),
   mood: z.enum(["excellent", "good", "neutral", "bad", "terrible"], {
-    errorMap: () => ({ message: "Invalid mood value" }),
+    error: "Invalid mood value",
   }),
   todos: z
     .array(
