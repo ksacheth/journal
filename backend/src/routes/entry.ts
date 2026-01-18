@@ -2,6 +2,7 @@ import express from "express";
 import { EntryModel } from "../models/Entry";
 import { authHandle } from "../middleware/auth";
 import { entrySchema } from "../validators";
+import { logger } from "../config";
 
 const router = express.Router();
 
@@ -44,25 +45,57 @@ router.get("/entries/:month", authHandle, async (req, res) => {
       return res.status(400).json({ error: "Invalid month format" });
     }
 
-    // Create date range for the month (in UTC)
-    const startDate = new Date(Date.UTC(year, monthNum - 1, 1));
-    const endDate = new Date(Date.UTC(year, monthNum, 0, 23, 59, 59, 999));
+    const pageParam = Array.isArray(req.query.page)
+      ? req.query.page[0]
+      : req.query.page;
+    const limitParam = Array.isArray(req.query.limit)
+      ? req.query.limit[0]
+      : req.query.limit;
+    const page = Math.max(1, Number.parseInt(pageParam ?? "1", 10) || 1);
+    const limit = Math.min(
+      100,
+      Math.max(1, Number.parseInt(limitParam ?? "31", 10) || 31)
+    );
+    const skip = (page - 1) * limit;
 
-    const entries = await EntryModel.find({
-      userId: userId,
-      date: {
-        $gte: startDate,
-        $lte: endDate,
-      },
-    }).select("date mood -_id");
+    // Create date range for the month (local time)
+    const startDate = new Date(year, monthNum - 1, 1);
+    const endDate = new Date(year, monthNum, 0, 23, 59, 59, 999);
+
+    const [entries, total] = await Promise.all([
+      EntryModel.find({
+        userId: userId,
+        date: {
+          $gte: startDate,
+          $lte: endDate,
+        },
+      })
+        .sort({ date: 1 })
+        .skip(skip)
+        .limit(limit)
+        .select("date mood -_id"),
+      EntryModel.countDocuments({
+        userId: userId,
+        date: {
+          $gte: startDate,
+          $lte: endDate,
+        },
+      }),
+    ]);
 
     return res.json({
       entries: entries.map((entry) => ({
         date: entry.date,
         mood: entry.mood,
       })),
+      pagination: {
+        page,
+        limit,
+        total,
+      },
     });
   } catch (error) {
+    logger.error({ err: error, userId, month: monthParam }, "Error fetching entries");
     return res.status(500).json({ error: "Error fetching entries" });
   }
 });
@@ -80,19 +113,38 @@ router.get("/entry/:date", authHandle, async (req, res) => {
       return res.status(400).json({ error: "Invalid date parameter" });
     }
 
-    // Parse date parameter (assuming format: "YYYY-MM-DD")
-    const date = new Date(dateParam);
+    // Parse date parameter (format: "YYYY-MM-DD")
+    const [yearStr, monthStr, dayStr] = dateParam.split("-");
+    const parsedYear = Number.parseInt(yearStr ?? "", 10);
+    const parsedMonth = Number.parseInt(monthStr ?? "", 10);
+    const parsedDay = Number.parseInt(dayStr ?? "", 10);
 
-    if (isNaN(date.getTime())) {
+    if (
+      !Number.isFinite(parsedYear) ||
+      !Number.isFinite(parsedMonth) ||
+      !Number.isFinite(parsedDay)
+    ) {
       return res.status(400).json({ error: "Invalid date format" });
     }
 
-    // Create range for the entire UTC day
+    const daysInMonth = new Date(parsedYear, parsedMonth, 0).getDate();
+    if (
+      parsedMonth < 1 ||
+      parsedMonth > 12 ||
+      parsedDay < 1 ||
+      parsedDay > daysInMonth
+    ) {
+      return res.status(400).json({ error: "Invalid date format" });
+    }
+
+    const date = new Date(parsedYear, parsedMonth - 1, parsedDay);
+
+    // Create range for the entire local day
     const startOfDay = new Date(date);
-    startOfDay.setUTCHours(0, 0, 0, 0);
+    startOfDay.setHours(0, 0, 0, 0);
 
     const endOfDay = new Date(date);
-    endOfDay.setUTCHours(23, 59, 59, 999);
+    endOfDay.setHours(23, 59, 59, 999);
 
     // Query entry for the date
     const entry = await EntryModel.findOne({
@@ -109,6 +161,7 @@ router.get("/entry/:date", authHandle, async (req, res) => {
 
     return res.json(entry);
   } catch (error) {
+    logger.error({ err: error, userId, date: dateParam }, "Error fetching entry");
     return res.status(500).json({ error: "Error fetching entry" });
   }
 });
@@ -137,16 +190,33 @@ router.post("/entry/:date", authHandle, async (req, res) => {
 
     const { title, text, mood, todos, tags } = validationResult.data;
 
-    // Parse date parameter
-    const date = new Date(dateParam);
+    // Parse date parameter (format: "YYYY-MM-DD")
+    const [yearStr, monthStr, dayStr] = dateParam.split("-");
+    const parsedYear = Number.parseInt(yearStr ?? "", 10);
+    const parsedMonth = Number.parseInt(monthStr ?? "", 10);
+    const parsedDay = Number.parseInt(dayStr ?? "", 10);
 
-    if (isNaN(date.getTime())) {
+    if (
+      !Number.isFinite(parsedYear) ||
+      !Number.isFinite(parsedMonth) ||
+      !Number.isFinite(parsedDay)
+    ) {
       return res.status(400).json({ error: "Invalid date format" });
     }
 
-    // Ensure it is UTC Midnight
-    const entryDate = new Date(date);
-    entryDate.setUTCHours(0, 0, 0, 0);
+    const daysInMonth = new Date(parsedYear, parsedMonth, 0).getDate();
+    if (
+      parsedMonth < 1 ||
+      parsedMonth > 12 ||
+      parsedDay < 1 ||
+      parsedDay > daysInMonth
+    ) {
+      return res.status(400).json({ error: "Invalid date format" });
+    }
+
+    // Ensure it is local midnight
+    const entryDate = new Date(parsedYear, parsedMonth - 1, parsedDay);
+    entryDate.setHours(0, 0, 0, 0);
 
     // Create or update entry (upsert)
     const entry = await EntryModel.findOneAndUpdate(
@@ -172,6 +242,10 @@ router.post("/entry/:date", authHandle, async (req, res) => {
 
     return res.json(entry);
   } catch (error) {
+    logger.error(
+      { err: error, userId, date: dateParam },
+      "Error creating/updating entry"
+    );
     return res.status(500).json({ error: "Error creating/updating entry" });
   }
 });
