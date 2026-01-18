@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 export default function SignIn() {
@@ -9,16 +9,6 @@ export default function SignIn() {
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const savedToken = window.localStorage.getItem("authToken");
-      if (savedToken) {
-        router.push("/entry");
-      }
-    }
-  }, [router]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -31,6 +21,7 @@ export default function SignIn() {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include",
         body: JSON.stringify({ username, password }),
       });
 
@@ -40,12 +31,7 @@ export default function SignIn() {
         throw new Error(message);
       }
 
-      const data = await response.json();
-      if (!data.token) {
-        throw new Error("No token returned from server.");
-      }
-
-      window.localStorage.setItem("authToken", data.token);
+      await response.json().catch(() => ({}));
       router.push("/entry");
     } catch (error) {
       setError(

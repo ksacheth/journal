@@ -38,22 +38,43 @@ export default function CalendarPage() {
   const params = useParams();
   const monthParam = params.month as string;
 
+  const parseMonthParam = (value?: string | null) => {
+    const today = new Date();
+    const fallback = { month: today.getMonth(), year: today.getFullYear() };
+
+    if (!value) {
+      return fallback;
+    }
+
+    if (value.includes("-")) {
+      const [yearStr, monthStr] = value.split("-");
+      if (!yearStr || !monthStr) {
+        return fallback;
+      }
+
+      const parsedYear = Number.parseInt(yearStr, 10);
+      const parsedMonth = Number.parseInt(monthStr, 10) - 1;
+
+      if (!Number.isFinite(parsedYear) || Number.isNaN(parsedMonth)) {
+        return fallback;
+      }
+
+      const month = Math.min(11, Math.max(0, parsedMonth));
+      return { month, year: parsedYear };
+    }
+
+    const parsedMonth = Number.parseInt(value, 10) - 1;
+    if (Number.isNaN(parsedMonth)) {
+      return fallback;
+    }
+
+    const month = Math.min(11, Math.max(0, parsedMonth));
+    return { month, year: fallback.year };
+  };
+
   // Initialize state based on URL param to avoid flash
   const getInitialMonth = () => {
-    if (monthParam) {
-      if (monthParam.includes("-")) {
-        const [yearStr, monthStr] = monthParam.split("-");
-        const year = parseInt(yearStr, 10);
-        const monthNum = parseInt(monthStr, 10) - 1;
-        return { month: monthNum, year };
-      } else {
-        const monthNum = parseInt(monthParam, 10) - 1;
-        return { month: monthNum, year: new Date().getFullYear() };
-      }
-    } else {
-      const today = new Date();
-      return { month: today.getMonth(), year: today.getFullYear() };
-    }
+    return parseMonthParam(monthParam);
   };
 
   const initial = getInitialMonth();
@@ -65,22 +86,7 @@ export default function CalendarPage() {
 
   useEffect(() => {
     // Parse month from URL (format: "2024-10" or "10")
-    let monthNum = 0;
-    let year = new Date().getFullYear();
-
-    if (monthParam) {
-      if (monthParam.includes("-")) {
-        const [yearStr, monthStr] = monthParam.split("-");
-        year = parseInt(yearStr, 10);
-        monthNum = parseInt(monthStr, 10) - 1;
-      } else {
-        monthNum = parseInt(monthParam, 10) - 1;
-      }
-    } else {
-      const today = new Date();
-      monthNum = today.getMonth();
-      year = today.getFullYear();
-    }
+    const { month: monthNum, year } = parseMonthParam(monthParam);
 
     setCurrentMonth(monthNum);
     setCurrentYear(year);

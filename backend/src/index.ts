@@ -46,7 +46,7 @@ app.post("/api/signup", async (req, res) => {
   try {
     const existingUser = await UserModel.findOne({
       username: username,
-    });
+    }).select("+password");
 
     if (existingUser) {
       return res.status(409).json({
@@ -74,43 +74,48 @@ app.post("/api/signup", async (req, res) => {
 });
 
 app.post("/api/signin", async (req, res) => {
-  const username = req.body.username;
-  const password = req.body.password;
+  try {
+    const username = req.body.username;
+    const password = req.body.password;
 
-  if (
-    typeof username !== "string" ||
-    username.trim().length === 0 ||
-    typeof password !== "string" ||
-    password.trim().length === 0
-  ) {
-    return res.status(400).json({
-      message: "Invalid input",
+    if (
+      typeof username !== "string" ||
+      username.trim().length === 0 ||
+      typeof password !== "string" ||
+      password.trim().length === 0
+    ) {
+      return res.status(400).json({
+        message: "Invalid input",
+      });
+    }
+
+    const existingUser = await UserModel.findOne({
+      username: username,
     });
-  }
 
-  const existingUser = await UserModel.findOne({
-    username: username,
-  });
+    if (!existingUser) {
+      return res.status(401).json({
+        message: "Access Denied",
+      });
+    }
 
-  if (!existingUser) {
-    return res.status(401).json({
-      message: "Access Denied",
-    });
-  }
+    const passwordMatch = await bcrypt.compare(password, existingUser.password);
 
-  const passwordMatch = await bcrypt.compare(password, existingUser.password);
+    if (passwordMatch) {
+      // return a jwt
+      const token = jwt.sign({ userId: existingUser.id }, JWT_SECRET);
 
-  if (passwordMatch) {
-    // return a jwt
-    const token = jwt.sign({ userId: existingUser.id }, JWT_SECRET);
-
-    return res.json({
-      token,
-    });
-  } else {
-    return res.status(401).json({
-      message: "Invalid Credentials",
-    });
+      return res.json({
+        token,
+      });
+    } else {
+      return res.status(401).json({
+        message: "Invalid Credentials",
+      });
+    }
+  } catch (error) {
+    console.error("Signin error", error);
+    return res.status(500).json({ message: "Internal Server Error" });
   }
 });
 

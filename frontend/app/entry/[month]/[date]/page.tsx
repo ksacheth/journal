@@ -47,6 +47,25 @@ export default function EntryPage() {
       }
 
       const day = parseInt(dateParam, 10);
+      if (
+        Number.isNaN(year) ||
+        Number.isNaN(month) ||
+        Number.isNaN(day) ||
+        month < 0 ||
+        month > 11
+      ) {
+        setError("Invalid date.");
+        setLoading(false);
+        return;
+      }
+
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      if (day < 1 || day > daysInMonth) {
+        setError("Invalid date.");
+        setLoading(false);
+        return;
+      }
+
       const date = new Date(year, month, day);
       setEntryDate(date);
 
