@@ -105,11 +105,14 @@ export default function CalendarPage() {
 
       try {
         const monthStr = String(month + 1).padStart(2, "0");
-        const response = await fetch(`/api/entries/${year}-${monthStr}`, {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/entries/${year}-${monthStr}`,
+          {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        });
+          }
+        );
 
         if (!response.ok) {
           const data = await response.json().catch(() => ({}));

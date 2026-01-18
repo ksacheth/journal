@@ -86,11 +86,14 @@ export default function EntryPage() {
           const month = String(dateToFetch.getMonth() + 1).padStart(2, "0");
           const day = String(dateToFetch.getDate()).padStart(2, "0");
           const dateStr = `${year}-${month}-${day}`;
-          const response = await fetch(`/api/entry/${dateStr}`, {
+          const response = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL}/api/entry/${dateStr}`,
+            {
             headers: {
               Authorization: `Bearer ${token}`,
             },
-          });
+            }
+          );
 
           if (response.status === 404) {
             setEntry(null);
@@ -159,7 +162,9 @@ export default function EntryPage() {
       const month = String(entryData.date.getMonth() + 1).padStart(2, "0");
       const day = String(entryData.date.getDate()).padStart(2, "0");
       const dateStr = `${year}-${month}-${day}`;
-      const response = await fetch(`/api/entry/${dateStr}`, {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/entry/${dateStr}`,
+        {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -171,7 +176,8 @@ export default function EntryPage() {
           tags: entryData.tags,
           todos: entryData.todos,
         }),
-      });
+        }
+      );
 
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));

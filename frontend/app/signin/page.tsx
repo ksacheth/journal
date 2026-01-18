@@ -16,14 +16,17 @@ export default function SignIn() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch("/api/signin", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({ username, password }),
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/signin`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({ username, password }),
+        }
+      );
 
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
