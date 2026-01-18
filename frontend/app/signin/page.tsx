@@ -34,7 +34,10 @@ export default function SignIn() {
         throw new Error(message);
       }
 
-      await response.json().catch(() => ({}));
+      const data = await response.json();
+      if (data.token) {
+        localStorage.setItem("authToken", data.token);
+      }
       router.push("/entry");
     } catch (error) {
       setError(
