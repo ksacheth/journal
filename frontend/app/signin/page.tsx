@@ -2,14 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-
-export default function SignIn() {
-  const router = useRouter();
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
 import { fetchClient } from "@/lib/api";
 
 export default function SignIn() {

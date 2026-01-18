@@ -2,23 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-
-export default function Signup() {
-  const router = useRouter();
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const token = window.localStorage.getItem("authToken");
-      if (token) {
-        router.push("/entry");
-      }
-    }
-  }, [router]);
-
 import { fetchClient } from "@/lib/api";
 
 export default function Signup() {
