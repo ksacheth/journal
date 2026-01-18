@@ -4,6 +4,8 @@ services:
   backend:
     image: ghcr.io/ksacheth/journal/backend:latest
     restart: always
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
     ports:
       - "2025:3001"
     environment:
@@ -24,6 +26,8 @@ services:
   frontend:
     image: ghcr.io/ksacheth/journal/frontend:latest
     restart: always
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
     ports:
       - "2026:3000"
     environment:
