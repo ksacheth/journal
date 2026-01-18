@@ -1,0 +1,39 @@
+name: journal-ghcr
+
+services:
+  backend:
+    image: ghcr.io/ksacheth/journal/backend:latest
+    restart: always
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - MONGODB_URL=${MONGODB_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - PORT=3001
+    networks:
+      - journal-network
+    healthcheck:
+      test:
+        ["CMD", "wget", "--spider", "-q", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  frontend:
+    image: ghcr.io/ksacheth/journal/frontend:latest
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+    depends_on:
+      - backend
+    networks:
+      - journal-network
+
+networks:
+  journal-network:
+    driver: bridge
