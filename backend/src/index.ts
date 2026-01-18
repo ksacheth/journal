@@ -10,6 +10,34 @@ import bcrypt from "bcryptjs";
 const app = express();
 app.use(express.json());
 
+const corsOrigins = (process.env.CORS_ORIGIN ?? "http://localhost:3000")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin && corsOrigins.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+    res.setHeader(
+      "Access-Control-Allow-Headers",
+      "Content-Type, Authorization"
+    );
+    res.setHeader(
+      "Access-Control-Allow-Methods",
+      "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+    );
+  }
+
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(204);
+  }
+
+  next();
+});
+
 connectDb().catch((error) => {
   console.error("Failed to connect to database", error);
 });
@@ -91,7 +119,7 @@ app.post("/api/signin", async (req, res) => {
 
     const existingUser = await UserModel.findOne({
       username: username,
-    });
+    }).select("+password");
 
     if (!existingUser) {
       return res.status(401).json({
