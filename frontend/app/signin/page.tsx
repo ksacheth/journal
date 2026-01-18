@@ -10,31 +10,26 @@ export default function SignIn() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+import { fetchClient } from "@/lib/api";
+
+export default function SignIn() {
+  const router = useRouter();
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/signin`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({ username, password }),
-        }
-      );
+      const data = await fetchClient("/api/signin", {
+        method: "POST",
+        body: JSON.stringify({ username, password }),
+      });
 
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        const message = data.message ?? "Unable to sign in.";
-        throw new Error(message);
-      }
-
-      const data = await response.json();
       if (data.token) {
         localStorage.setItem("authToken", data.token);
       }
@@ -51,8 +46,8 @@ export default function SignIn() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#0E0C1B] p-4 sm:p-6">
-      <div className="w-full max-w-md rounded-2xl bg-[#050408] p-6 sm:p-8 text-white shadow-xl">
+    <div className="flex min-h-screen items-center justify-center bg-background p-4 sm:p-6">
+      <div className="w-full max-w-md rounded-2xl bg-surface p-6 sm:p-8 text-white shadow-xl">
         <h1 className="text-2xl font-semibold">Journal Sign In</h1>
         <p className="mt-2 text-sm text-white/60">
           Sign in to continue.
@@ -90,7 +85,7 @@ export default function SignIn() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full rounded-lg bg-[#3617CE] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#5a1fc7] disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/80 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSubmitting ? "Signing in..." : "Sign in"}
           </button>
@@ -99,7 +94,7 @@ export default function SignIn() {
             <button
               type="button"
               onClick={() => router.push("/signup")}
-              className="text-[#3617CE] hover:underline"
+              className="text-primary hover:underline"
             >
               Sign up
             </button>

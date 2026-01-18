@@ -187,11 +187,10 @@ export default function JournalEntryModal({
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm">
       <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative w-full max-w-2xl rounded-2xl bg-[#0E0C1B] p-6 shadow-2xl sm:p-8">
+        <div className="relative w-full max-w-2xl rounded-2xl bg-background p-6 shadow-2xl sm:p-8">
           {/* Header - Centered */}
           <div
-            className="mb-6 text-center text-sm font-medium"
-            style={{ color: "#3617CE" }}
+            className="mb-6 text-center text-sm font-medium text-primary"
           >
             {formatDate(currentDate, currentTime)}
           </div>
@@ -219,8 +218,8 @@ export default function JournalEntryModal({
                   style={
                     selectedMood === mood.value
                       ? {
-                          filter: `drop-shadow(0 0 8px #6D4DFF) drop-shadow(0 0 12px #6D4DFF)`,
-                          textShadow: "0 0 8px #6D4DFF, 0 0 12px #6D4DFF",
+                          filter: `drop-shadow(0 0 8px var(--color-primary)) drop-shadow(0 0 12px var(--color-primary))`,
+                          textShadow: "0 0 8px var(--color-primary), 0 0 12px var(--color-primary)",
                         }
                       : {}
                   }
@@ -237,20 +236,12 @@ export default function JournalEntryModal({
                         value={text}
                         onChange={(e) => setText(e.target.value)}
                         placeholder="What's on your mind today?"
-                        className="w-full resize-none rounded-lg bg-[#050408] p-4 text-base sm:text-sm text-white focus:outline-none focus:ring-2 h-40 sm:h-60"
+                        className="w-full resize-none rounded-lg bg-surface p-4 text-base sm:text-sm text-white focus:outline-none focus:ring-2 h-40 sm:h-60 focus:ring-primary focus:border-primary"
                         style={
                           {
                             "--tw-placeholder-opacity": "0.5",
                           } as React.CSSProperties & { "--tw-placeholder-opacity": string }
                         }
-                        onFocus={(e) => {
-                          e.target.style.borderColor = "#3617CE";
-                          e.target.style.boxShadow = "0 0 0 2px #3617CE";
-                        }}
-                        onBlur={(e) => {
-                          e.target.style.borderColor = "";
-                          e.target.style.boxShadow = "";
-                        }}
                       />
                     </div>
           
@@ -260,15 +251,12 @@ export default function JournalEntryModal({
                         {todos.map((todo) => (
                           <div
                             key={todo.id}
-                            className="flex items-center gap-3 rounded-lg bg-[#050408] p-3"
+                            className="flex items-center gap-3 rounded-lg bg-surface p-3"
                           >
                             <button
                               type="button"
                               onClick={() => handleToggleTodo(todo.id)}
-                              className="flex h-5 w-5 items-center justify-center rounded-full border-2 bg-transparent transition-all hover:opacity-80"
-                              style={{
-                                borderColor: "#3617CE",
-                              }}
+                              className="flex h-5 w-5 items-center justify-center rounded-full border-2 bg-transparent transition-all hover:opacity-80 border-primary"
                               aria-label={`Toggle todo ${todo.text}`}
                             >
                               {todo.completed && (
@@ -281,10 +269,11 @@ export default function JournalEntryModal({
                                 >
                                   <path
                                     d="M2 6L5 9L10 2"
-                                    stroke="#3617CE"
+                                    stroke="currentColor"
                                     strokeWidth="2"
                                     strokeLinecap="round"
                                     strokeLinejoin="round"
+                                    className="text-primary"
                                   />
                                 </svg>
                               )}
@@ -293,14 +282,13 @@ export default function JournalEntryModal({
                               className={`flex-1 text-sm text-white ${
                                 todo.completed ? "line-through opacity-50" : ""
                               }`}
-                              style={todo.completed ? { color: "#3617CE" } : {}}
+                              style={todo.completed ? { color: "var(--color-primary)" } : {}}
                             >
                               {todo.text}
                             </span>
                             <button
                               onClick={() => handleRemoveTodo(todo.id)}
-                              style={{ color: "#3617CE" }}
-                              className="hover:opacity-80 transition-opacity"
+                              className="hover:opacity-80 transition-opacity text-primary"
                               aria-label={`Remove todo ${todo.text}`}
                             >
                               ×
@@ -313,7 +301,7 @@ export default function JournalEntryModal({
                           onChange={(e) => setNewTodo(e.target.value)}
                           onKeyPress={handleTodoKeyPress}
                           placeholder="Add a todo..."
-                          className="w-full rounded-lg bg-[#050408] px-3 py-2 text-base sm:text-sm text-white focus:outline-none focus:ring-2"
+                          className="w-full rounded-lg bg-surface px-3 py-2 text-base sm:text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary"
                           style={
                             {
                               "--tw-placeholder-opacity": "0.5",
@@ -321,14 +309,6 @@ export default function JournalEntryModal({
                               "--tw-placeholder-opacity": string;
                             }
                           }
-                          onFocus={(e) => {
-                            e.target.style.borderColor = "#3617CE";
-                            e.target.style.boxShadow = "0 0 0 2px #3617CE";
-                          }}
-                          onBlur={(e) => {
-                            e.target.style.borderColor = "";
-                            e.target.style.boxShadow = "";
-                          }}
                         />
                       </div>
                     </div>
@@ -336,21 +316,19 @@ export default function JournalEntryModal({
                     {/* Tagging Section */}
                     <div className="mb-6">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span style={{ color: "#3617CE" }}>#</span>
+                        <span className="text-primary">#</span>
                         {tags.map((tag) => (
                           <span
                             key={tag}
-                            className="flex items-center gap-2 rounded-full px-3 py-1 text-sm"
+                            className="flex items-center gap-2 rounded-full px-3 py-1 text-sm text-primary"
                             style={{
                               backgroundColor: "rgba(54, 23, 206, 0.3)",
-                              color: "#3617CE",
                             }}
                           >
                             #{tag}
                             <button
                               onClick={() => handleRemoveTag(tag)}
-                              style={{ color: "#3617CE" }}
-                              className="hover:opacity-80 transition-opacity"
+                              className="hover:opacity-80 transition-opacity text-primary"
                               aria-label={`Remove tag ${tag}`}
                             >
                               ×
@@ -363,7 +341,7 @@ export default function JournalEntryModal({
                           onChange={(e) => setNewTag(e.target.value)}
                           onKeyPress={handleKeyPress}
                           placeholder="Add tag..."
-                          className="flex-1 rounded-lg bg-[#050408] px-3 py-1 text-base sm:text-sm text-white focus:outline-none focus:ring-2"
+                          className="flex-1 rounded-lg bg-surface px-3 py-1 text-base sm:text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary"
                           style={
                             {
                               "--tw-placeholder-opacity": "0.5",
@@ -371,31 +349,20 @@ export default function JournalEntryModal({
                               "--tw-placeholder-opacity": string;
                             }
                           }
-                          onFocus={(e) => {
-                            e.target.style.borderColor = "#3617CE";
-                            e.target.style.boxShadow = "0 0 0 2px #3617CE";
-                          }}
-                          onBlur={(e) => {
-                            e.target.style.borderColor = "";
-                            e.target.style.boxShadow = "";
-                          }}
                         />
                       </div>
                     </div>
         {/* Status and Actions */}
         <div
-          className="flex items-center justify-between border-t pt-6"
-          style={{ borderColor: "rgba(54, 23, 206, 0.3)" }}
+          className="flex items-center justify-between border-t pt-6 border-primary/30"
         >
           <div
-            className="flex items-center gap-2 text-sm"
-            style={{ color: "#3617CE" }}
+            className="flex items-center gap-2 text-sm text-primary"
           >
             {isSaving && (
               <>
                 <div
-                  className="h-2 w-2 animate-pulse rounded-full"
-                  style={{ backgroundColor: "#3617CE" }}
+                  className="h-2 w-2 animate-pulse rounded-full bg-primary"
                 ></div>
                 <span>Saving to cloud...</span>
               </>
@@ -404,28 +371,14 @@ export default function JournalEntryModal({
           <div className="flex gap-4">
             <button
               onClick={handleDiscard}
-              style={{ color: "#3617CE" }}
-              className="px-6 py-2 text-sm font-medium hover:opacity-80 transition-opacity"
+              className="px-6 py-2 text-sm font-medium hover:opacity-80 transition-opacity text-primary"
             >
               Discard
             </button>
             <button
               onClick={handleSave}
               disabled={isSaving}
-              className="rounded-lg px-6 py-2 text-sm font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              style={{
-                backgroundColor: "#3617CE",
-              }}
-              onMouseEnter={(e) => {
-                if (!isSaving) {
-                  e.currentTarget.style.backgroundColor = "#5a1fc7";
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!isSaving) {
-                  e.currentTarget.style.backgroundColor = "#3617CE";
-                }
-              }}
+              className="rounded-lg px-6 py-2 text-sm font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors bg-primary hover:bg-primary/80"
             >
               Done
             </button>
