@@ -42,11 +42,11 @@ export default function SignIn() {
     <div className="flex min-h-screen items-center justify-center p-4 sm:p-6">
       <div className="bounce-in w-full max-w-md">
         {/* Header with Icon */}
-        <div className="mb-8 text-center">
-          <div className="pulse-glow mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-primary via-accent to-secondary shadow-xl">
-            <Sparkles className="h-10 w-10 text-white" />
+        <div className="mb-6 sm:mb-8 text-center">
+          <div className="pulse-glow mx-auto mb-4 sm:mb-6 flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-primary via-accent to-secondary shadow-xl">
+            <Sparkles className="h-8 w-8 sm:h-10 sm:w-10 text-white" />
           </div>
-          <h1 className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-4xl font-bold tracking-tight text-transparent">
+          <h1 className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-3xl sm:text-4xl font-bold tracking-tight text-transparent">
             Welcome Back
           </h1>
           <p className="mt-3 text-base font-medium text-text-secondary">
@@ -55,7 +55,7 @@ export default function SignIn() {
         </div>
 
         {/* Form Card */}
-        <div className="card-surface p-8 sm:p-10">
+        <div className="card-surface p-6 sm:p-8 lg:p-10">
           {error && (
             <div className="mb-6 rounded-xl border-2 border-primary/40 bg-primary/10 p-4 text-sm font-medium text-primary">
               {error}

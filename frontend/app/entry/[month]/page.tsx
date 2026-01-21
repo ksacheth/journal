@@ -242,36 +242,36 @@ export default function CalendarPage() {
         <div className="bounce-in mb-8 flex items-center justify-between">
           <button
             onClick={() => router.push("/entry")}
-            className="smooth-transition flex items-center gap-2 rounded-xl border-2 border-accent bg-surface px-5 py-3 text-sm font-bold text-text-primary shadow-md hover:scale-105 hover:border-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-accent/10 hover:shadow-lg"
+            className="smooth-transition flex items-center gap-2 rounded-xl border-2 border-accent bg-surface p-2.5 sm:px-5 sm:py-3 text-sm font-bold text-text-primary shadow-md hover:scale-105 hover:border-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-accent/10 hover:shadow-lg"
           >
             <CalendarDays className="h-5 w-5 text-accent" />
-            All Months
+            <span className="hidden sm:inline">All Months</span>
           </button>
           
           <button
             onClick={handleSignOut}
-            className="smooth-transition flex items-center gap-2 rounded-xl border-2 border-primary/30 bg-surface px-5 py-3 text-sm font-bold text-text-primary shadow-md hover:scale-105 hover:border-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-primary/20 hover:shadow-lg"
+            className="smooth-transition flex items-center gap-2 rounded-xl border-2 border-primary/30 bg-surface p-2.5 sm:px-5 sm:py-3 text-sm font-bold text-text-primary shadow-md hover:scale-105 hover:border-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-primary/20 hover:shadow-lg"
           >
             <LogOut className="h-5 w-5 text-primary" />
-            Sign Out
+            <span className="hidden sm:inline">Sign Out</span>
           </button>
         </div>
 
         {/* Month Navigation */}
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-4 sm:mb-8 flex items-center justify-between">
           <button
             onClick={() => handleMonthChange("prev")}
-            className="smooth-transition flex h-12 w-12 items-center justify-center rounded-xl border-2 border-secondary bg-surface text-secondary shadow-md hover:scale-110 hover:border-primary hover:bg-gradient-to-br hover:from-primary/10 hover:to-secondary/10 hover:text-primary hover:shadow-lg"
+            className="smooth-transition flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl border-2 border-secondary bg-surface text-secondary shadow-md hover:scale-110 hover:border-primary hover:bg-gradient-to-br hover:from-primary/10 hover:to-secondary/10 hover:text-primary hover:shadow-lg"
           >
-            <ChevronLeft className="h-6 w-6" />
+            <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
           </button>
           
           <div className="text-center">
-            <h1 className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-4xl font-bold text-transparent">
+            <h1 className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-xl sm:text-3xl lg:text-4xl font-bold text-transparent">
               {monthsFull[currentMonth]} {currentYear}
             </h1>
-            <p className="mt-2 text-base font-medium text-text-secondary">
-              <span className="inline-block rounded-full bg-gradient-to-r from-accent/20 to-primary/20 px-4 py-1">
+            <p className="mt-1 sm:mt-2 text-xs sm:text-base font-medium text-text-secondary">
+              <span className="inline-block rounded-full bg-gradient-to-r from-accent/20 to-primary/20 px-2 sm:px-4 py-0.5 sm:py-1">
                 {entries.length} {entries.length === 1 ? "entry" : "entries"} 🎨
               </span>
             </p>
@@ -279,9 +279,9 @@ export default function CalendarPage() {
           
           <button
             onClick={() => handleMonthChange("next")}
-            className="smooth-transition flex h-12 w-12 items-center justify-center rounded-xl border-2 border-secondary bg-surface text-secondary shadow-md hover:scale-110 hover:border-primary hover:bg-gradient-to-br hover:from-primary/10 hover:to-secondary/10 hover:text-primary hover:shadow-lg"
+            className="smooth-transition flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl border-2 border-secondary bg-surface text-secondary shadow-md hover:scale-110 hover:border-primary hover:bg-gradient-to-br hover:from-primary/10 hover:to-secondary/10 hover:text-primary hover:shadow-lg"
           >
-            <ChevronRight className="h-6 w-6" />
+            <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
           </button>
         </div>
 
@@ -292,13 +292,13 @@ export default function CalendarPage() {
         )}
 
         {/* Calendar */}
-        <div className="card-surface overflow-hidden p-6 sm:p-8">
+        <div className="card-surface overflow-hidden p-3 sm:p-6 lg:p-8">
           {/* Days of Week */}
-          <div className="mb-6 grid grid-cols-7 gap-2">
+          <div className="mb-3 sm:mb-6 grid grid-cols-7 gap-1 sm:gap-2">
             {daysOfWeek.map((day, i) => (
               <div
                 key={day}
-                className="text-center text-xs font-bold uppercase tracking-widest"
+                className="text-center text-[10px] sm:text-xs font-bold uppercase tracking-widest"
                 style={{
                   color: moodColors[Object.keys(moodColors)[i % 5]],
                 }}
@@ -314,9 +314,9 @@ export default function CalendarPage() {
               <div className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-lg font-bold text-transparent">Loading your colorful calendar... ✨</div>
             </div>
           ) : (
-            <div className="grid grid-cols-7 gap-2 sm:gap-3">
+            <div className="grid grid-cols-7 gap-1 sm:gap-2 lg:gap-3">
               {emptyDays.map((_, index) => (
-                <div key={`empty-${index}`} className="aspect-square" />
+                <div key={`empty-${index}`} className="aspect-[1/1.3] sm:aspect-square" />
               ))}
               {days.map((day) => {
                 const mood = getEntryMood(day);
@@ -326,35 +326,43 @@ export default function CalendarPage() {
                   <button
                     key={day}
                     onClick={() => handleDateClick(day)}
-                    className={`smooth-transition group relative aspect-square overflow-hidden rounded-xl border-2 p-2 ${
+                    className={`smooth-transition group relative aspect-[1/1.3] sm:aspect-square overflow-hidden rounded-lg sm:rounded-xl border-2 ${
                       today
                         ? "pulse-glow border-primary bg-gradient-to-br from-primary/20 to-accent/20"
                         : mood
-                        ? "border-border bg-surface hover:border-primary"
+                        ? "border-transparent hover:border-primary"
                         : "border-border/50 bg-surface/50 hover:border-accent"
                     } hover:scale-105 hover:shadow-lg`}
+                    style={mood ? { backgroundColor: `${moodColors[mood]}15` } : undefined}
                   >
                     <div className="flex h-full flex-col items-center justify-center">
-                      <span
-                        className={`text-base font-bold sm:text-lg ${
-                          today
-                            ? "bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent"
-                            : mood
-                            ? "text-text-primary"
-                            : "text-text-tertiary"
-                        }`}
-                      >
-                        {day}
-                      </span>
-                      {mood && (
-                        <div className="mt-1 flex items-center gap-1">
-                          <span className="text-lg">{moodEmojis[mood]}</span>
-                        </div>
-                      )}
-                      {today && !mood && (
-                        <div className="mt-1 text-xs font-bold text-primary">
-                          Today
-                        </div>
+                      {/* Show date and emoji */}
+                      {mood ? (
+                        <>
+                          <span className="text-xs sm:text-base font-bold lg:text-lg text-text-primary">
+                            {day}
+                          </span>
+                          <div className="mt-0.5 sm:mt-1 flex items-center">
+                            <span className="text-base sm:text-lg">{moodEmojis[mood]}</span>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <span
+                            className={`text-sm sm:text-base font-bold lg:text-lg ${
+                              today
+                                ? "bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent"
+                                : "text-text-tertiary"
+                            }`}
+                          >
+                            {day}
+                          </span>
+                          {today && (
+                            <div className="mt-0.5 sm:mt-1 text-[8px] sm:text-xs font-bold text-primary">
+                              Today
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
                   </button>
@@ -365,18 +373,18 @@ export default function CalendarPage() {
         </div>
 
         {/* Legend */}
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-4 text-sm font-medium">
+        <div className="mt-4 sm:mt-8 flex flex-wrap items-center justify-center gap-2 sm:gap-4 text-xs sm:text-sm font-medium">
           {Object.entries(moodEmojis).map(([mood, emoji]) => (
             <div
               key={mood}
-              className="flex items-center gap-2 rounded-full border-2 px-4 py-2 shadow-sm"
+              className="flex items-center gap-1 sm:gap-2 rounded-full border-2 px-2 sm:px-4 py-1 sm:py-2 shadow-sm"
               style={{
                 borderColor: moodColors[mood],
                 backgroundColor: `${moodColors[mood]}10`,
               }}
             >
-              <span className="text-base">{emoji}</span>
-              <span className="capitalize" style={{ color: moodColors[mood] }}>
+              <span className="text-sm sm:text-base">{emoji}</span>
+              <span className="capitalize hidden sm:inline" style={{ color: moodColors[mood] }}>
                 {mood}
               </span>
             </div>
