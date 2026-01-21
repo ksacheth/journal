@@ -39,11 +39,13 @@ body {
   --color-text-secondary: #4A3B5C;
   --color-text-tertiary: #7B6B8C;
   
-  /* Gradients */
-  --gradient-primary: linear-gradient(135deg, #FF0080 0%, #B57EDC 100%);
-  --gradient-secondary: linear-gradient(135deg, #FF9966 0%, #EF9B0F 100%);
-  --gradient-accent: linear-gradient(135deg, #B57EDC 0%, #7F87DC 100%);
-  --gradient-rainbow: linear-gradient(135deg, #FF0080 0%, #FF9966 25%, #EF9B0F 50%, #B57EDC 75%, #7F87DC 100%);
+  /* Border Radius - using Tailwind v4 convention */
+  --radius-xs: 0.5rem;
+  --radius-sm: 0.75rem;
+  --radius-md: 1rem;
+  --radius-lg: 1.25rem;
+  --radius-xl: 1.5rem;
+  --radius-2xl: 2rem;
   
   /* Shadows */
   --shadow-xs: 0 1px 2px 0 rgba(255, 0, 128, 0.05);
@@ -51,24 +53,24 @@ body {
   --shadow-md: 0 4px 8px -1px rgba(255, 0, 128, 0.1), 0 2px 4px -2px rgba(255, 0, 128, 0.1);
   --shadow-lg: 0 10px 20px -3px rgba(255, 0, 128, 0.15), 0 4px 6px -4px rgba(255, 0, 128, 0.1);
   --shadow-xl: 0 20px 30px -5px rgba(255, 0, 128, 0.2), 0 8px 10px -6px rgba(255, 0, 128, 0.15);
-  
   --shadow-glow: 0 0 20px rgba(255, 0, 128, 0.3), 0 0 40px rgba(181, 126, 220, 0.2);
   --shadow-glow-secondary: 0 0 20px rgba(255, 153, 102, 0.3), 0 0 40px rgba(239, 155, 15, 0.2);
+
+  /* Easing */
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
   
-  /* Border Radius (using custom prefix to avoid Tailwind v4 conflicts) */
-  --custom-radius-xs: 0.5rem;
-  --custom-radius-sm: 0.75rem;
-  --custom-radius-md: 1rem;
-  --custom-radius-lg: 1.25rem;
-  --custom-radius-xl: 1.5rem;
-  --custom-radius-2xl: 2rem;
-  
-  /* Spacing (using custom prefix to avoid Tailwind v4 conflicts) */
-  --custom-spacing-xs: 0.5rem;
-  --custom-spacing-sm: 0.75rem;
-  --custom-spacing-md: 1rem;
-  --custom-spacing-lg: 1.5rem;
-  --custom-spacing-xl: 2rem;
+  /* Animation durations */
+  --animate-bounce-in: bounceIn 0.6s var(--ease-bounce);
+  --animate-pulse-glow: pulseGlow 2s ease-in-out infinite;
+}
+
+/* Custom CSS properties for gradients (not directly theme-able in v4) */
+:root {
+  --gradient-primary: linear-gradient(135deg, #FF0080 0%, #B57EDC 100%);
+  --gradient-secondary: linear-gradient(135deg, #FF9966 0%, #EF9B0F 100%);
+  --gradient-accent: linear-gradient(135deg, #B57EDC 0%, #7F87DC 100%);
+  --gradient-rainbow: linear-gradient(135deg, #FF0080 0%, #FF9966 25%, #EF9B0F 50%, #B57EDC 75%, #7F87DC 100%);
 }
 
 body {
@@ -81,6 +83,7 @@ body {
   font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
+/* Custom utilities using @utility */
 @utility scrollbar-hide {
   &::-webkit-scrollbar {
     display: none;
@@ -100,8 +103,8 @@ body {
 @utility card-surface {
   background: var(--color-surface);
   border: 2px solid var(--color-border);
-  border-radius: var(--custom-radius-xl);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: var(--radius-xl);
+  transition: all 0.3s var(--ease-smooth);
   box-shadow: var(--shadow-sm);
 }
 
@@ -117,31 +120,33 @@ body {
 @utility gradient-border {
   position: relative;
   background: var(--color-surface);
-  border-radius: var(--custom-radius-xl);
+  border-radius: var(--radius-xl);
   
   &::before {
     content: '';
     position: absolute;
     inset: 0;
-    border-radius: var(--custom-radius-xl);
+    border-radius: var(--radius-xl);
     padding: 2px;
     background: var(--gradient-primary);
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     mask-composite: exclude;
   }
 }
 
 @utility smooth-transition {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.3s var(--ease-smooth);
 }
-
-
 
 @utility bounce-in {
-  animation: bounceIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  animation: var(--animate-bounce-in);
 }
 
+@utility pulse-glow {
+  animation: var(--animate-pulse-glow);
+}
+
+/* Keyframe animations */
 @keyframes bounceIn {
   0% {
     transform: scale(0.9);
@@ -154,10 +159,6 @@ body {
     transform: scale(1);
     opacity: 1;
   }
-}
-
-@utility pulse-glow {
-  animation: pulseGlow 2s ease-in-out infinite;
 }
 
 @keyframes pulseGlow {
