@@ -14,17 +14,17 @@ export default function ErrorBoundary({
   }, [error]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#0E0C1B] p-6">
-      <div className="max-w-md rounded-2xl border border-white/10 bg-[#050408] p-6 text-center">
-        <h2 className="text-xl font-semibold text-white">
+    <div className="flex min-h-screen items-center justify-center bg-background p-6">
+      <div className="max-w-md rounded-2xl border border-border bg-surface p-8 text-center shadow-lg">
+        <h2 className="text-xl font-bold text-text-primary">
           Something went wrong
         </h2>
-        <p className="mt-2 text-sm text-white/60">
+        <p className="mt-2 text-sm text-text-secondary">
           Try again or refresh the page if the problem persists.
         </p>
         <button
           onClick={() => reset()}
-          className="mt-4 rounded-lg bg-[#3617CE] px-4 py-2 text-sm font-medium text-white hover:bg-[#2c12a6]"
+          className="mt-6 smooth-transition rounded-xl bg-primary px-6 py-2.5 text-sm font-bold text-white shadow-md hover:bg-primary-hover hover:scale-105"
         >
           Try again
         </button>

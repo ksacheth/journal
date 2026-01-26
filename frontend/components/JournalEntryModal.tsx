@@ -30,11 +30,11 @@ interface JournalEntryModalProps {
 }
 
 const moods = [
-  { emoji: "😢", value: "terrible", label: "Very sad", color: "#FF0080" },
-  { emoji: "😞", value: "bad", label: "Sad", color: "#FF9966" },
-  { emoji: "😐", value: "neutral", label: "Neutral", color: "#EF9B0F" },
-  { emoji: "😊", value: "good", label: "Happy", color: "#B57EDC" },
-  { emoji: "😄", value: "excellent", label: "Very happy", color: "#00FF80" },
+  { emoji: "😢", value: "terrible", label: "Very sad", color: "#ef4444" }, // Red
+  { emoji: "😞", value: "bad", label: "Sad", color: "#f97316" }, // Orange
+  { emoji: "😐", value: "neutral", label: "Neutral", color: "#64748b" }, // Slate
+  { emoji: "😊", value: "good", label: "Good", color: "#3b82f6" }, // Blue
+  { emoji: "😄", value: "excellent", label: "Great", color: "#10b981" }, // Emerald
 ];
 
 export default function JournalEntryModal({
@@ -46,7 +46,7 @@ export default function JournalEntryModal({
   errorMessage,
 }: JournalEntryModalProps) {
   const [selectedMood, setSelectedMood] = useState<string>(
-    initialEntry?.mood || "good"
+    initialEntry?.mood || "good",
   );
   const [text, setText] = useState<string>(initialEntry?.text || "");
   const [tags, setTags] = useState<string[]>(initialEntry?.tags || []);
@@ -138,8 +138,8 @@ export default function JournalEntryModal({
   const handleToggleTodo = (id: string) => {
     setTodos(
       todos.map((todo) =>
-        todo.id === id ? { ...todo, completed: !todo.completed } : todo
-      )
+        todo.id === id ? { ...todo, completed: !todo.completed } : todo,
+      ),
     );
   };
 
@@ -181,23 +181,24 @@ export default function JournalEntryModal({
 
   if (!isOpen) return null;
 
-  const selectedMoodColor = moods.find(m => m.value === selectedMood)?.color || "#B57EDC";
+  const selectedMoodColor =
+    moods.find((m) => m.value === selectedMood)?.color || "#818cf8";
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex min-h-full items-center justify-center p-4">
         {/* Backdrop */}
         <div
-          className="fixed inset-0 bg-gradient-to-br from-primary/20 via-accent/20 to-secondary/20 backdrop-blur-md"
+          className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm"
           onClick={handleDiscard}
         />
 
         {/* Modal */}
-        <div className="glass-effect bounce-in relative w-full max-w-3xl rounded-2xl sm:rounded-3xl p-4 sm:p-8 lg:p-10 shadow-2xl">
+        <div className="glass-effect bounce-in relative w-full max-w-3xl rounded-2xl sm:rounded-3xl p-4 sm:p-8 lg:p-10 shadow-2xl bg-white/95">
           {/* Close Button */}
           <button
             onClick={handleDiscard}
-            className="smooth-transition absolute right-3 top-3 sm:right-6 sm:top-6 flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-xl border-2 border-primary/30 bg-surface text-primary hover:scale-110 hover:border-primary hover:bg-primary hover:text-white hover:rotate-90"
+            className="smooth-transition absolute right-3 top-3 sm:right-6 sm:top-6 flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-xl border border-secondary/20 bg-surface text-secondary hover:scale-110 hover:border-primary hover:bg-primary hover:text-white hover:rotate-90"
           >
             <X className="h-4 w-4 sm:h-5 sm:w-5" />
           </button>
@@ -206,7 +207,7 @@ export default function JournalEntryModal({
           <div className="mb-4 sm:mb-8 text-center">
             <div className="mb-2 sm:mb-4 flex items-center justify-center gap-1 sm:gap-2">
               <Sparkles className="h-3 w-3 sm:h-5 sm:w-5 text-primary" />
-              <h2 className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-xs sm:text-base font-bold uppercase tracking-wider text-transparent">
+              <h2 className="text-secondary text-xs sm:text-base font-bold uppercase tracking-wider">
                 {formatDate(currentDate, currentTime)}
               </h2>
               <Sparkles className="h-3 w-3 sm:h-5 sm:w-5 text-accent" />
@@ -214,7 +215,7 @@ export default function JournalEntryModal({
           </div>
 
           {errorMessage && (
-            <div className="mb-6 rounded-xl border-2 border-primary/40 bg-primary/10 p-4 text-sm font-medium text-primary">
+            <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-600">
               {errorMessage}
             </div>
           )}
@@ -228,12 +229,19 @@ export default function JournalEntryModal({
                 className={`smooth-transition flex h-12 w-12 sm:h-16 sm:w-16 items-center justify-center rounded-xl sm:rounded-2xl border-2 text-2xl sm:text-4xl ${
                   selectedMood === mood.value
                     ? "scale-125 shadow-xl"
-                    : "opacity-50 hover:scale-110 hover:opacity-100"
+                    : "opacity-50 hover:scale-110 hover:opacity-100 grayscale hover:grayscale-0"
                 }`}
                 style={{
-                  borderColor: selectedMood === mood.value ? mood.color : 'transparent',
-                  backgroundColor: selectedMood === mood.value ? `${mood.color}20` : 'transparent',
-                  boxShadow: selectedMood === mood.value ? `0 0 30px ${mood.color}40` : 'none',
+                  borderColor:
+                    selectedMood === mood.value ? mood.color : "transparent",
+                  backgroundColor:
+                    selectedMood === mood.value
+                      ? `${mood.color}15`
+                      : "transparent",
+                  boxShadow:
+                    selectedMood === mood.value
+                      ? `0 0 20px ${mood.color}30`
+                      : "none",
                 }}
                 aria-label={mood.label}
               >
@@ -247,10 +255,10 @@ export default function JournalEntryModal({
             <textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder="Pour your heart out... ✨"
-              className="w-full resize-none rounded-xl sm:rounded-2xl border-2 border-border bg-surface p-4 sm:p-6 text-sm sm:text-base font-medium text-text-primary placeholder-text-tertiary focus:border-primary focus:outline-hidden focus:ring-4 focus:ring-primary/20 h-32 sm:h-56"
+              placeholder="How were your days... ✨"
+              className="w-full resize-none rounded-xl sm:rounded-2xl border border-border bg-surface p-4 sm:p-6 text-sm sm:text-base font-medium text-text-primary placeholder-text-tertiary focus:border-primary focus:outline-hidden focus:ring-4 focus:ring-primary/10 h-32 sm:h-56 transition-all duration-300"
               style={{
-                borderColor: selectedMoodColor + '40',
+                borderColor: selectedMoodColor + "60",
               }}
             />
           </div>
@@ -261,18 +269,18 @@ export default function JournalEntryModal({
               {todos.map((todo) => (
                 <div
                   key={todo.id}
-                  className="smooth-transition flex items-center gap-2 sm:gap-3 rounded-xl border-2 border-accent/20 bg-surface p-3 sm:p-4 hover:border-accent/40 hover:shadow-md"
+                  className="smooth-transition flex items-center gap-2 sm:gap-3 rounded-xl border border-border bg-surface p-3 sm:p-4 hover:border-accent/40 hover:shadow-sm"
                 >
                   <button
                     type="button"
                     onClick={() => handleToggleTodo(todo.id)}
-                    className={`smooth-transition flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border-2 ${
+                    className={`smooth-transition flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border ${
                       todo.completed
-                        ? "border-success bg-success"
-                        : "border-accent bg-transparent hover:border-success"
+                        ? "border-success bg-success text-white"
+                        : "border-secondary/40 bg-transparent hover:border-success"
                     }`}
                   >
-                    {todo.completed && <Check className="h-4 w-4 text-white" />}
+                    {todo.completed && <Check className="h-3.5 w-3.5" />}
                   </button>
                   <span
                     className={`flex-1 text-sm font-medium ${
@@ -285,7 +293,7 @@ export default function JournalEntryModal({
                   </span>
                   <button
                     onClick={() => handleRemoveTodo(todo.id)}
-                    className="smooth-transition text-text-tertiary hover:scale-110 hover:text-primary"
+                    className="smooth-transition text-text-tertiary hover:scale-110 hover:text-error"
                   >
                     <X className="h-5 w-5" />
                   </button>
@@ -302,11 +310,11 @@ export default function JournalEntryModal({
                 onChange={(e) => setNewTodo(e.target.value)}
                 onKeyPress={handleTodoKeyPress}
                 placeholder="Add a task... ✓"
-                className="flex-1 rounded-xl border-2 border-secondary/30 bg-surface px-3 sm:px-4 py-2 sm:py-3 text-sm font-medium text-text-primary placeholder-text-tertiary focus:border-secondary focus:outline-hidden focus:ring-4 focus:ring-secondary/20"
+                className="flex-1 rounded-xl border border-border bg-surface px-3 sm:px-4 py-2 sm:py-3 text-sm font-medium text-text-primary placeholder-text-tertiary focus:border-secondary focus:outline-hidden focus:ring-4 focus:ring-secondary/10"
               />
               <button
                 onClick={handleAddTodo}
-                className="smooth-transition flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-xl border-2 border-secondary bg-gradient-to-br from-secondary to-warning text-white hover:scale-110 hover:shadow-lg"
+                className="smooth-transition flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-xl bg-secondary text-white hover:scale-110 hover:bg-secondary-hover shadow-md"
               >
                 <Plus className="h-5 w-5" />
               </button>
@@ -320,10 +328,9 @@ export default function JournalEntryModal({
               {tags.map((tag, i) => (
                 <span
                   key={tag}
-                  className="smooth-transition flex items-center gap-1 sm:gap-2 rounded-full border-2 px-2 sm:px-4 py-1 sm:py-1.5 text-xs sm:text-sm font-bold shadow-sm hover:scale-105"
+                  className="smooth-transition flex items-center gap-1 sm:gap-2 rounded-full border px-2 sm:px-4 py-1 sm:py-1.5 text-xs sm:text-sm font-bold shadow-sm hover:scale-105 bg-surface"
                   style={{
                     borderColor: moods[i % moods.length].color,
-                    backgroundColor: `${moods[i % moods.length].color}15`,
                     color: moods[i % moods.length].color,
                   }}
                 >
@@ -341,35 +348,35 @@ export default function JournalEntryModal({
                 value={newTag}
                 onChange={(e) => setNewTag(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="Add a colorful tag... 🏷️"
-                className="min-w-[120px] sm:min-w-[180px] flex-1 rounded-xl border-2 border-accent/30 bg-surface px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-text-primary placeholder-text-tertiary focus:border-accent focus:outline-hidden focus:ring-4 focus:ring-accent/20"
+                placeholder="Add tags... 🏷️"
+                className="min-w-[120px] sm:min-w-[180px] flex-1 rounded-xl border border-dashed border-secondary/30 bg-transparent px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-text-primary placeholder-text-tertiary focus:border-accent focus:outline-hidden focus:ring-4 focus:ring-accent/10"
               />
             </div>
           </div>
 
           {/* Actions */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0 border-t-2 border-border pt-4 sm:pt-6">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0 border-t border-border pt-4 sm:pt-6">
             <div className="flex items-center gap-2 text-sm font-medium text-text-tertiary">
               {isSaving && (
                 <>
                   <div className="h-2.5 w-2.5 animate-pulse rounded-full bg-primary" />
-                  <span>Saving your colorful memories...</span>
+                  <span>Saving...</span>
                 </>
               )}
             </div>
             <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
               <button
                 onClick={handleDiscard}
-                className="smooth-transition flex-1 sm:flex-initial rounded-xl border-2 border-border bg-surface px-4 sm:px-6 py-2.5 sm:py-3 text-sm font-bold text-text-secondary hover:scale-105 hover:border-primary hover:bg-primary/10 hover:text-primary"
+                className="smooth-transition flex-1 sm:flex-initial rounded-xl border border-border bg-surface px-4 sm:px-6 py-2.5 sm:py-3 text-sm font-bold text-text-secondary hover:scale-105 hover:border-primary hover:bg-primary/5 hover:text-primary"
               >
                 Discard
               </button>
               <button
                 onClick={handleSave}
                 disabled={isSaving}
-                className="smooth-transition flex-1 sm:flex-initial rounded-xl bg-gradient-to-r from-primary via-accent to-secondary px-4 sm:px-8 py-2.5 sm:py-3 text-sm font-bold text-white shadow-lg hover:scale-105 hover:shadow-glow disabled:cursor-not-allowed disabled:opacity-60"
+                className="smooth-transition flex-1 sm:flex-initial rounded-xl bg-primary px-4 sm:px-8 py-2.5 sm:py-3 text-sm font-bold text-white shadow-lg hover:scale-105 hover:bg-primary-hover hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Save Entry ✨
+                Save Entry
               </button>
             </div>
           </div>

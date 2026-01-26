@@ -16,9 +16,10 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Journal - Capture Your Thoughts",
-  description: "A beautiful journal app to track your moods, thoughts, and daily reflections",
+  description:
+    "A beautiful journal app to track your moods, thoughts, and daily reflections",
   manifest: "/manifest.json",
-  themeColor: "#8B5CF6",
+  themeColor: "#4f46e5",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
