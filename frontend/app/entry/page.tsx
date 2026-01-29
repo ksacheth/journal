@@ -76,28 +76,30 @@ export default function EntryPage() {
               <button
                 key={index}
                 onClick={() => handleMonthClick(index)}
-                className={`smooth-transition group relative overflow-hidden rounded-xl border p-4 sm:p-8 text-center shadow-sm ${
+                className={`smooth-transition group relative overflow-hidden rounded-xl border p-4 sm:p-8 text-center shadow-sm aspect-[3/2] sm:aspect-[4/3] ${
                   isCurrentMonth
-                    ? "border-primary/50 bg-primary/5 ring-1 ring-primary/20"
+                    ? "border-primary/50 bg-primary/5 ring-2 ring-primary/30 shadow-primary/20"
                     : "border-border bg-surface hover:border-primary/50 hover:shadow-md"
                 }`}
               >
                 <div
                   className={`absolute inset-0 bg-primary/5 opacity-0 transition-opacity duration-300 group-hover:opacity-100`}
                 />
-                <div className="relative z-10">
+                <div className="relative z-10 flex h-full flex-col items-center justify-center">
                   <span
                     className={`text-base sm:text-xl font-bold ${isCurrentMonth ? "text-primary" : "text-text-primary group-hover:text-primary"} transition-colors`}
                   >
                     {month}
                   </span>
-                  {isCurrentMonth && (
-                    <div className="mt-3">
-                      <span className="inline-block rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
-                        Current
-                      </span>
-                    </div>
-                  )}
+                  <span
+                    className={`mt-2 inline-block rounded-full px-3 py-1 text-xs font-bold transition-all ${
+                      isCurrentMonth
+                        ? "bg-primary/20 text-primary"
+                        : "bg-transparent text-transparent group-hover:bg-secondary/10 group-hover:text-text-tertiary"
+                    }`}
+                  >
+                    {isCurrentMonth ? "Current" : "•"}
+                  </span>
                 </div>
               </button>
             );

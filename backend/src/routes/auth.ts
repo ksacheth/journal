@@ -7,47 +7,11 @@ import { signupSchema, signinSchema } from "../validators";
 
 const router = express.Router();
 
-router.post("/signup", async (req, res) => {
-  const validationResult = signupSchema.safeParse(req.body);
-
-  if (!validationResult.success) {
-    return res.status(400).json({
-      message: "Invalid input",
-      errors: validationResult.error.errors,
-    });
-  }
-
-  const { username, password } = validationResult.data;
-
-  try {
-    const existingUser = await UserModel.findOne({
-      username: username,
-    }).select("+password");
-
-    if (existingUser) {
-      return res.status(409).json({
-        message: "User already exists",
-      });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const user = await UserModel.create({
-      username: username,
-      password: hashedPassword,
-    });
-
-    const token = jwt.sign({ userId: user.id }, JWT_SECRET);
-
-    return res.json({
-      token,
-    });
-  } catch (error) {
-    logger.error({ err: error, username }, "Signup error");
-    return res.status(500).json({
-      message: "Error creating user",
-    });
-  }
+// Signup disabled
+router.post("/signup", async (_req, res) => {
+  return res.status(403).json({
+    message: "Sign up is currently disabled",
+  });
 });
 
 // Pre-calculated dummy hash for timing attack protection
