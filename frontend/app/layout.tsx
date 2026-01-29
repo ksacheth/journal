@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import GlobalErrorHandler from "@/components/GlobalErrorHandler";
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
@@ -19,18 +19,19 @@ export const metadata: Metadata = {
   description:
     "A beautiful journal app to track your moods, thoughts, and daily reflections",
   manifest: "/manifest.json",
-  themeColor: "#4f46e5",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
     title: "Journal",
   },
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#4f46e5",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({
