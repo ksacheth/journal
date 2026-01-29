@@ -159,23 +159,19 @@ export default function JournalEntryModal({
         tags: tags,
         todos: todos,
       });
-      setText("");
-      setTags([]);
-      setTodos([]);
-      setSelectedMood("good");
-      setIsSaving(false);
+      // Don't clear state here - component will unmount on navigation
+      // Clearing causes a flash of empty content before the route changes
       onClose();
     } catch (error) {
-      setIsSaving(false);
       console.error("Error saving entry:", error);
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleDiscard = () => {
-    setText("");
-    setTags([]);
-    setTodos([]);
-    setSelectedMood("good");
+    // Don't clear state here - component will unmount on navigation
+    // Clearing causes a flash of empty content before the route changes
     onClose();
   };
 
@@ -195,10 +191,11 @@ export default function JournalEntryModal({
 
         {/* Modal */}
         <div className="glass-effect bounce-in relative w-full max-w-3xl rounded-2xl sm:rounded-3xl p-4 sm:p-8 lg:p-10 shadow-2xl bg-white/95">
-          {/* Close Button */}
+          {/* Close Button - Saves and exits */}
           <button
-            onClick={handleDiscard}
-            className="smooth-transition absolute right-3 top-3 sm:right-6 sm:top-6 flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-xl border border-secondary/20 bg-surface text-secondary hover:scale-110 hover:border-primary hover:bg-primary hover:text-white hover:rotate-90"
+            onClick={handleSave}
+            disabled={isSaving}
+            className="smooth-transition absolute right-3 top-3 sm:right-6 sm:top-6 flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-xl border border-secondary/20 bg-surface text-secondary hover:scale-110 hover:border-primary hover:bg-primary hover:text-white hover:rotate-90 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <X className="h-4 w-4 sm:h-5 sm:w-5" />
           </button>
