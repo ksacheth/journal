@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { ChevronLeft, ChevronRight, CalendarDays, LogOut } from "lucide-react";
 
@@ -100,59 +100,74 @@ export default function CalendarPage() {
     return `${year}-${month}-${day}`;
   };
 
+  const fetchEntries = useCallback(async (year: number, month: number) => {
+    setLoading(true);
+    setError(null);
+
+    const token = getAuthToken();
+    if (!token) {
+      setEntries([]);
+      setError("Sign in to load your entries.");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const monthStr = String(month + 1).padStart(2, "0");
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/entries/${year}-${monthStr}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          cache: "no-store",
+        },
+      );
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        const message = data.error ?? "Unable to load entries.";
+        throw new Error(message);
+      }
+
+      const data = await response.json();
+      const mappedEntries = (data.entries || []).map((entry: Entry) => ({
+        date: toLocalDateKey(entry.date),
+        mood: entry.mood,
+      }));
+
+      setEntries(mappedEntries);
+    } catch (error) {
+      console.error("Error fetching entries:", error);
+      setEntries([]);
+      setError("Unable to load entries right now.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     const { month: monthNum, year } = parseMonthParam(monthParam);
 
     setCurrentMonth(monthNum);
     setCurrentYear(year);
 
-    const fetchEntries = async (year: number, month: number) => {
-      setLoading(true);
-      setError(null);
+    fetchEntries(year, monthNum);
+  }, [monthParam, fetchEntries]);
 
-      const token = getAuthToken();
-      if (!token) {
-        setEntries([]);
-        setError("Sign in to load your entries.");
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const monthStr = String(month + 1).padStart(2, "0");
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/entries/${year}-${monthStr}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        if (!response.ok) {
-          const data = await response.json().catch(() => ({}));
-          const message = data.error ?? "Unable to load entries.";
-          throw new Error(message);
-        }
-
-        const data = await response.json();
-        const mappedEntries = (data.entries || []).map((entry: Entry) => ({
-          date: toLocalDateKey(entry.date),
-          mood: entry.mood,
-        }));
-
-        setEntries(mappedEntries);
-      } catch (error) {
-        console.error("Error fetching entries:", error);
-        setEntries([]);
-        setError("Unable to load entries right now.");
-      } finally {
-        setLoading(false);
+  // Refetch when page becomes visible (returning from entry detail page)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        fetchEntries(currentYear, currentMonth);
       }
     };
 
-    fetchEntries(year, monthNum);
-  }, [monthParam]);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [currentYear, currentMonth, fetchEntries]);
 
   const getAuthToken = () => {
     if (typeof window === "undefined") {
@@ -185,7 +200,7 @@ export default function CalendarPage() {
   const getEntryMood = (day: number): string | null => {
     const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(
       2,
-      "0"
+      "0",
     )}-${String(day).padStart(2, "0")}`;
     const entry = entries.find((e) => e.date === dateStr);
     return entry ? entry.mood : null;
@@ -247,7 +262,7 @@ export default function CalendarPage() {
             <CalendarDays className="h-5 w-5 text-accent" />
             <span className="hidden sm:inline">All Months</span>
           </button>
-          
+
           <button
             onClick={handleSignOut}
             className="smooth-transition flex items-center gap-2 rounded-xl border-2 border-primary/30 bg-surface p-2.5 sm:px-5 sm:py-3 text-sm font-bold text-text-primary shadow-md hover:scale-105 hover:border-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-primary/20 hover:shadow-lg"
@@ -265,7 +280,7 @@ export default function CalendarPage() {
           >
             <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
           </button>
-          
+
           <div className="text-center">
             <h1 className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-xl sm:text-3xl lg:text-4xl font-bold text-transparent">
               {monthsFull[currentMonth]} {currentYear}
@@ -276,7 +291,7 @@ export default function CalendarPage() {
               </span>
             </p>
           </div>
-          
+
           <button
             onClick={() => handleMonthChange("next")}
             className="smooth-transition flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl border-2 border-secondary bg-surface text-secondary shadow-md hover:scale-110 hover:border-primary hover:bg-gradient-to-br hover:from-primary/10 hover:to-secondary/10 hover:text-primary hover:shadow-lg"
@@ -311,12 +326,17 @@ export default function CalendarPage() {
           {/* Calendar Grid */}
           {loading ? (
             <div className="py-16 text-center">
-              <div className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-lg font-bold text-transparent">Loading your colorful calendar... ✨</div>
+              <div className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-lg font-bold text-transparent">
+                Loading your colorful calendar... ✨
+              </div>
             </div>
           ) : (
             <div className="grid grid-cols-7 gap-1 sm:gap-2 lg:gap-3">
               {emptyDays.map((_, index) => (
-                <div key={`empty-${index}`} className="aspect-[1/1.3] sm:aspect-square" />
+                <div
+                  key={`empty-${index}`}
+                  className="aspect-[1/1.3] sm:aspect-square"
+                />
               ))}
               {days.map((day) => {
                 const mood = getEntryMood(day);
@@ -330,10 +350,14 @@ export default function CalendarPage() {
                       today
                         ? "pulse-glow border-primary bg-gradient-to-br from-primary/20 to-accent/20"
                         : mood
-                        ? "border-transparent hover:border-primary"
-                        : "border-border/50 bg-surface/50 hover:border-accent"
+                          ? "border-transparent hover:border-primary"
+                          : "border-border/50 bg-surface/50 hover:border-accent"
                     } hover:scale-105 hover:shadow-lg`}
-                    style={mood ? { backgroundColor: `${moodColors[mood]}15` } : undefined}
+                    style={
+                      mood
+                        ? { backgroundColor: `${moodColors[mood]}15` }
+                        : undefined
+                    }
                   >
                     <div className="flex h-full flex-col items-center justify-center">
                       {/* Show date and emoji */}
@@ -343,7 +367,9 @@ export default function CalendarPage() {
                             {day}
                           </span>
                           <div className="mt-0.5 sm:mt-1 flex items-center">
-                            <span className="text-base sm:text-lg">{moodEmojis[mood]}</span>
+                            <span className="text-base sm:text-lg">
+                              {moodEmojis[mood]}
+                            </span>
                           </div>
                         </>
                       ) : (
@@ -384,7 +410,10 @@ export default function CalendarPage() {
               }}
             >
               <span className="text-sm sm:text-base">{emoji}</span>
-              <span className="capitalize hidden sm:inline" style={{ color: moodColors[mood] }}>
+              <span
+                className="capitalize hidden sm:inline"
+                style={{ color: moodColors[mood] }}
+              >
                 {mood}
               </span>
             </div>

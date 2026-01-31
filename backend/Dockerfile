@@ -5,8 +5,7 @@ FROM oven/bun:alpine AS base
 FROM base AS deps
 WORKDIR /app
 COPY package.json bun.lock ./
-# --frozen-lockfile ensures reproducible builds
-RUN bun install --frozen-lockfile
+RUN bun install --production
 
 # Production image, copy all the files and run
 FROM base AS runner

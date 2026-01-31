@@ -89,10 +89,11 @@ export default function EntryPage() {
           const response = await fetch(
             `${process.env.NEXT_PUBLIC_API_URL}/api/entry/${dateStr}`,
             {
-            headers: {
-              Authorization: `Bearer ${token}`,
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+              cache: "no-store",
             },
-            }
           );
 
           if (response.status === 404) {
@@ -140,7 +141,6 @@ export default function EntryPage() {
     );
   };
 
-
   const handleSave = async (entryData: {
     date: Date;
     mood: string;
@@ -165,18 +165,18 @@ export default function EntryPage() {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/entry/${dateStr}`,
         {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            mood: entryData.mood,
+            text: entryData.text,
+            tags: entryData.tags,
+            todos: entryData.todos,
+          }),
         },
-        body: JSON.stringify({
-          mood: entryData.mood,
-          text: entryData.text,
-          tags: entryData.tags,
-          todos: entryData.todos,
-        }),
-        }
       );
 
       if (!response.ok) {
@@ -202,7 +202,7 @@ export default function EntryPage() {
       setError(
         error instanceof Error && error.message
           ? error.message
-          : "Unable to save entry right now."
+          : "Unable to save entry right now.",
       );
       throw error;
     }
