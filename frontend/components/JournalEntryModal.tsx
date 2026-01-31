@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Hash, Plus, Check, Sparkles } from "lucide-react";
+import { X, Hash, Plus, Check, Sparkles, GripVertical } from "lucide-react";
 
 interface Todo {
   id: string;
@@ -56,6 +56,8 @@ export default function JournalEntryModal({
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [currentDate] = useState<Date>(initialDate || new Date());
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
+  const [draggedTodoId, setDraggedTodoId] = useState<string | null>(null);
+  const [dragOverTodoId, setDragOverTodoId] = useState<string | null>(null);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -149,6 +151,55 @@ export default function JournalEntryModal({
     }
   };
 
+  // Drag and drop handlers
+  const handleDragStart = (e: React.DragEvent, todoId: string) => {
+    setDraggedTodoId(todoId);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", todoId);
+  };
+
+  const handleDragOver = (e: React.DragEvent, todoId: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (draggedTodoId !== todoId) {
+      setDragOverTodoId(todoId);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOverTodoId(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, targetTodoId: string) => {
+    e.preventDefault();
+    if (!draggedTodoId || draggedTodoId === targetTodoId) {
+      setDraggedTodoId(null);
+      setDragOverTodoId(null);
+      return;
+    }
+
+    const sourceIndex = todos.findIndex((t) => t.id === draggedTodoId);
+    const targetIndex = todos.findIndex((t) => t.id === targetTodoId);
+
+    if (sourceIndex === -1 || targetIndex === -1) {
+      setDraggedTodoId(null);
+      setDragOverTodoId(null);
+      return;
+    }
+
+    const newTodos = [...todos];
+    const [movedTodo] = newTodos.splice(sourceIndex, 1);
+    newTodos.splice(targetIndex, 0, movedTodo);
+    setTodos(newTodos);
+    setDraggedTodoId(null);
+    setDragOverTodoId(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedTodoId(null);
+    setDragOverTodoId(null);
+  };
+
   const handleSave = async () => {
     setIsSaving(true);
     try {
@@ -159,23 +210,19 @@ export default function JournalEntryModal({
         tags: tags,
         todos: todos,
       });
-      setText("");
-      setTags([]);
-      setTodos([]);
-      setSelectedMood("good");
-      setIsSaving(false);
+      // Don't clear state here - component will unmount on navigation
+      // Clearing causes a flash of empty content before the route changes
       onClose();
     } catch (error) {
-      setIsSaving(false);
       console.error("Error saving entry:", error);
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleDiscard = () => {
-    setText("");
-    setTags([]);
-    setTodos([]);
-    setSelectedMood("good");
+    // Don't clear state here - component will unmount on navigation
+    // Clearing causes a flash of empty content before the route changes
     onClose();
   };
 
@@ -195,10 +242,11 @@ export default function JournalEntryModal({
 
         {/* Modal */}
         <div className="glass-effect bounce-in relative w-full max-w-3xl rounded-2xl sm:rounded-3xl p-4 sm:p-8 lg:p-10 shadow-2xl bg-white/95">
-          {/* Close Button */}
+          {/* Close Button - Saves and exits */}
           <button
-            onClick={handleDiscard}
-            className="smooth-transition absolute right-3 top-3 sm:right-6 sm:top-6 flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-xl border border-secondary/20 bg-surface text-secondary hover:scale-110 hover:border-primary hover:bg-primary hover:text-white hover:rotate-90"
+            onClick={handleSave}
+            disabled={isSaving}
+            className="smooth-transition absolute right-3 top-3 sm:right-6 sm:top-6 flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-xl border border-secondary/20 bg-surface text-secondary hover:scale-110 hover:border-primary hover:bg-primary hover:text-white hover:rotate-90 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <X className="h-4 w-4 sm:h-5 sm:w-5" />
           </button>
@@ -269,8 +317,24 @@ export default function JournalEntryModal({
               {todos.map((todo) => (
                 <div
                   key={todo.id}
-                  className="smooth-transition flex items-center gap-2 sm:gap-3 rounded-xl border border-border bg-surface p-3 sm:p-4 hover:border-accent/40 hover:shadow-sm"
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, todo.id)}
+                  onDragOver={(e) => handleDragOver(e, todo.id)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, todo.id)}
+                  onDragEnd={handleDragEnd}
+                  className={`smooth-transition flex items-center gap-2 sm:gap-3 rounded-xl border bg-surface p-3 sm:p-4 cursor-move ${
+                    draggedTodoId === todo.id
+                      ? "opacity-50 border-dashed border-primary"
+                      : dragOverTodoId === todo.id
+                        ? "border-primary ring-2 ring-primary/20 shadow-lg scale-[1.02]"
+                        : "border-border hover:border-accent/40 hover:shadow-sm"
+                  }`}
                 >
+                  {/* Drag handle */}
+                  <div className="text-text-tertiary cursor-grab active:cursor-grabbing">
+                    <GripVertical className="h-5 w-5" />
+                  </div>
                   <button
                     type="button"
                     onClick={() => handleToggleTodo(todo.id)}

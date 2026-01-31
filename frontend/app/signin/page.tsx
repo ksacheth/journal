@@ -102,15 +102,8 @@ export default function SignIn() {
 
           <div className="mt-6 text-center">
             <span className="text-sm text-text-tertiary">
-              Don&apos;t have an account?{" "}
+              Sign up is currently disabled
             </span>
-            <button
-              type="button"
-              onClick={() => router.push("/signup")}
-              className="text-sm font-bold text-primary smooth-transition hover:scale-105 inline-block hover:text-primary-hover"
-            >
-              Sign up →
-            </button>
           </div>
         </div>
       </div>
