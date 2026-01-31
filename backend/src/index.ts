@@ -53,18 +53,29 @@ connectDb().catch((error) => {
 });
 
 app.get("/api/health", async (req, res) => {
+  const dbHealthy = await checkDbHealth();
+  const cacheHealthy = cache.isHealthy();
+
+  const status = dbHealthy && cacheHealthy ? "healthy" : "degraded";
+  const statusCode = dbHealthy ? 200 : 503;
+
+  return res.status(statusCode).json({
+    status,
+    database: dbHealthy ? "connected" : "disconnected",
+    cache: cacheHealthy ? "connected" : "disconnected",
+    timestamp: new Date().toISOString(),
+  });
+});
+
+async function checkDbHealth(): Promise<boolean> {
   try {
     await connectDb();
-    return res.json({
-      message: "The database is healthy",
-    });
+    return true;
   } catch (error) {
     logger.error({ err: error }, "Health check database error");
-    return res.json({
-      message: "Error while connecting to database",
-    });
+    return false;
   }
-});
+}
 
 // Use Routes
 app.use("/api", authRoutes);

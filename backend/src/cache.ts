@@ -9,12 +9,13 @@ const CACHE_ENABLED = process.env.CACHE_ENABLED !== "false";
 const CACHE_TTL = {
   ENTRY: 60 * 60, // 1 hour - single entry
   MONTH: 60 * 30, // 30 minutes - monthly entries list
-  USER_ENTRIES: 60 * 60 * 24, // 24 hours - user's all entries metadata
+  USER_ENTRIES: 60 * 60 * 24, // 24 hours - user's all entries metadata (reserved for future use)
 };
 
 class CacheManager {
   private client: Redis | null = null;
   private isConnected = false;
+  private isReady = false;
 
   constructor() {
     if (!CACHE_ENABLED) {
@@ -37,13 +38,20 @@ class CacheManager {
         logger.info("Redis connected");
       });
 
+      this.client.on("ready", () => {
+        this.isReady = true;
+        logger.info("Redis ready");
+      });
+
       this.client.on("error", (error) => {
         logger.error({ err: error }, "Redis connection error");
         this.isConnected = false;
+        this.isReady = false;
       });
 
       this.client.on("close", () => {
         this.isConnected = false;
+        this.isReady = false;
         logger.warn("Redis connection closed");
       });
 
@@ -54,6 +62,13 @@ class CacheManager {
     } catch (error) {
       logger.error({ err: error }, "Failed to initialize Redis client");
     }
+  }
+
+  /**
+   * Check if cache is connected and ready
+   */
+  isHealthy(): boolean {
+    return this.isReady && this.isConnected;
   }
 
   /**
@@ -87,7 +102,7 @@ class CacheManager {
    * Get cached data
    */
   async get<T>(key: string): Promise<T | null> {
-    if (!this.client || !this.isConnected) {
+    if (!this.client || !this.isReady) {
       return null;
     }
 
@@ -107,7 +122,7 @@ class CacheManager {
    * Set cached data with TTL
    */
   async set(key: string, value: unknown, ttl: number): Promise<void> {
-    if (!this.client || !this.isConnected) {
+    if (!this.client || !this.isReady) {
       return;
     }
 
@@ -122,7 +137,7 @@ class CacheManager {
    * Delete cached data by key
    */
   async del(key: string): Promise<void> {
-    if (!this.client || !this.isConnected) {
+    if (!this.client || !this.isReady) {
       return;
     }
 
@@ -134,18 +149,36 @@ class CacheManager {
   }
 
   /**
-   * Delete multiple keys matching a pattern
+   * Delete multiple keys matching a pattern using SCAN for production safety
    */
   async delPattern(pattern: string): Promise<void> {
-    if (!this.client || !this.isConnected) {
+    if (!this.client || !this.isReady) {
       return;
     }
 
     try {
-      const keys = await this.client.keys(pattern);
-      if (keys.length > 0) {
-        await this.client.del(...keys);
-        logger.debug({ pattern, count: keys.length }, "Deleted cache keys");
+      let cursor = "0";
+      let deletedCount = 0;
+
+      do {
+        // Use SCAN instead of KEYS to avoid blocking Redis
+        const [nextCursor, keys] = await this.client.scan(
+          cursor,
+          "MATCH",
+          pattern,
+          "COUNT",
+          100,
+        );
+        cursor = nextCursor;
+
+        if (keys.length > 0) {
+          await this.client.del(...keys);
+          deletedCount += keys.length;
+        }
+      } while (cursor !== "0");
+
+      if (deletedCount > 0) {
+        logger.debug({ pattern, count: deletedCount }, "Deleted cache keys");
       }
     } catch (error) {
       logger.error({ err: error, pattern }, "Cache pattern delete error");
