@@ -1,6 +1,0 @@
-{
-  "dependencies": {},
-  "devDependencies": {
-    "@types/jsdom": "^27.0.0"
-  }
-}
