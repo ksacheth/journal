@@ -1,6 +1,23 @@
 name: journal-prod
 
 services:
+  redis:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - journal-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+
   backend:
     build:
       context: ./backend
@@ -13,6 +30,11 @@ services:
       - MONGODB_URL=${MONGODB_URL}
       - JWT_SECRET=${JWT_SECRET}
       - PORT=3001
+      - REDIS_URL=redis://redis:6379
+      - CACHE_ENABLED=true
+    depends_on:
+      redis:
+        condition: service_healthy
     networks:
       - journal-network
     healthcheck:
@@ -43,3 +65,6 @@ services:
 networks:
   journal-network:
     driver: bridge
+
+volumes:
+  redis-data:

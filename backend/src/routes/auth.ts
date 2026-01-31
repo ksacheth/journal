@@ -23,7 +23,7 @@ router.post("/signin", async (req, res) => {
   if (!validationResult.success) {
     return res.status(400).json({
       message: "Invalid input",
-      errors: validationResult.error.errors,
+      errors: validationResult.error.issues,
     });
   }
 

@@ -4,6 +4,7 @@ import { connectDb } from "./db";
 import authRoutes from "./routes/auth";
 import entryRoutes from "./routes/entry";
 import { logger } from "./config";
+import { cache } from "./cache";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -15,6 +16,19 @@ process.on("unhandledRejection", (reason) => {
 process.on("uncaughtException", (error) => {
   logger.fatal({ err: error }, "Uncaught exception");
   process.exit(1);
+});
+
+// Graceful shutdown
+process.on("SIGTERM", async () => {
+  logger.info("SIGTERM received, closing connections");
+  await cache.close();
+  process.exit(0);
+});
+
+process.on("SIGINT", async () => {
+  logger.info("SIGINT received, closing connections");
+  await cache.close();
+  process.exit(0);
 });
 
 app.use(express.json());

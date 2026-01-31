@@ -1,6 +1,21 @@
 name: journal
 
 services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - journal-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    command: redis-server --appendonly yes
+
   backend:
     build:
       context: ./backend
@@ -12,6 +27,11 @@ services:
       - MONGODB_URL=${MONGODB_URL}
       - JWT_SECRET=${JWT_SECRET}
       - PORT=3001
+      - REDIS_URL=redis://redis:6379
+      - CACHE_ENABLED=true
+    depends_on:
+      redis:
+        condition: service_healthy
     networks:
       - journal-network
     develop:
@@ -58,4 +78,7 @@ services:
 
 networks:
   journal-network:
+
+volumes:
+  redis-data:
     driver: bridge

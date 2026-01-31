@@ -3,12 +3,13 @@ import { EntryModel } from "../models/Entry";
 import { authHandle } from "../middleware/auth";
 import { entrySchema } from "../validators";
 import { logger } from "../config";
+import { cache } from "../cache";
 
 const router = express.Router();
 
 router.get("/entries/:month", authHandle, async (req, res) => {
   try {
-    const monthParam = req.params.month;
+    const monthParam = req.params.month as string;
     const userId = req.userId;
 
     if (!userId) {
@@ -45,18 +46,28 @@ router.get("/entries/:month", authHandle, async (req, res) => {
       return res.status(400).json({ error: "Invalid month format" });
     }
 
-    const pageParam = Array.isArray(req.query.page)
-      ? req.query.page[0]
-      : req.query.page;
-    const limitParam = Array.isArray(req.query.limit)
-      ? req.query.limit[0]
-      : req.query.limit;
+    const pageParam = (req.query.page as string) || "1";
+    const limitParam = (req.query.limit as string) || "31";
     const page = Math.max(1, Number.parseInt(pageParam ?? "1", 10) || 1);
     const limit = Math.min(
       100,
-      Math.max(1, Number.parseInt(limitParam ?? "31", 10) || 31)
+      Math.max(1, Number.parseInt(limitParam ?? "31", 10) || 31),
     );
     const skip = (page - 1) * limit;
+
+    // Check cache first
+    const cachedData = await cache.getCachedMonthEntries<{
+      entries: Array<{ date: Date; mood: string }>;
+      pagination: { page: number; limit: number; total: number };
+    }>(userId, year, monthNum, page, limit);
+
+    if (cachedData) {
+      logger.debug(
+        { userId, year, month: monthNum, page, limit },
+        "Cache hit for monthly entries",
+      );
+      return res.json(cachedData);
+    }
 
     // Create date range for the month (local time)
     const startDate = new Date(year, monthNum - 1, 1);
@@ -73,7 +84,8 @@ router.get("/entries/:month", authHandle, async (req, res) => {
         .sort({ date: 1 })
         .skip(skip)
         .limit(limit)
-        .select("date mood -_id"),
+        .select("date mood -_id")
+        .lean(), // Use lean() for better performance
       EntryModel.countDocuments({
         userId: userId,
         date: {
@@ -83,7 +95,7 @@ router.get("/entries/:month", authHandle, async (req, res) => {
       }),
     ]);
 
-    return res.json({
+    const responseData = {
       entries: entries.map((entry) => ({
         date: entry.date,
         mood: entry.mood,
@@ -93,16 +105,24 @@ router.get("/entries/:month", authHandle, async (req, res) => {
         limit,
         total,
       },
-    });
+    };
+
+    // Cache the result
+    await cache.cacheMonthEntries(userId, year, monthNum, page, limit, responseData);
+
+    return res.json(responseData);
   } catch (error) {
-    logger.error({ err: error, userId, month: monthParam }, "Error fetching entries");
+    logger.error(
+      { err: error, userId: req.userId, month: req.params.month },
+      "Error fetching entries",
+    );
     return res.status(500).json({ error: "Error fetching entries" });
   }
 });
 
 router.get("/entry/:date", authHandle, async (req, res) => {
   try {
-    const dateParam = req.params.date;
+    const dateParam = req.params.date as string;
     const userId = req.userId;
 
     if (!userId) {
@@ -146,6 +166,14 @@ router.get("/entry/:date", authHandle, async (req, res) => {
     const endOfDay = new Date(date);
     endOfDay.setHours(23, 59, 59, 999);
 
+    // Check cache first
+    const cachedEntry = await cache.getCachedEntry(userId, dateParam);
+
+    if (cachedEntry) {
+      logger.debug({ userId, date: dateParam }, "Cache hit for entry");
+      return res.json(cachedEntry);
+    }
+
     // Query entry for the date
     const entry = await EntryModel.findOne({
       userId: userId,
@@ -153,22 +181,28 @@ router.get("/entry/:date", authHandle, async (req, res) => {
         $gte: startOfDay,
         $lte: endOfDay,
       },
-    });
+    }).lean(); // Use lean() for better performance
 
     if (!entry) {
       return res.status(404).json({ error: "Entry not found for this date" });
     }
 
+    // Cache the result
+    await cache.cacheEntry(userId, dateParam, entry);
+
     return res.json(entry);
   } catch (error) {
-    logger.error({ err: error, userId, date: dateParam }, "Error fetching entry");
+    logger.error(
+      { err: error, userId: req.userId, date: req.params.date },
+      "Error fetching entry",
+    );
     return res.status(500).json({ error: "Error fetching entry" });
   }
 });
 
 router.post("/entry/:date", authHandle, async (req, res) => {
   try {
-    const dateParam = req.params.date;
+    const dateParam = req.params.date as string;
     const userId = req.userId;
 
     if (!userId) {
@@ -184,7 +218,7 @@ router.post("/entry/:date", authHandle, async (req, res) => {
     if (!validationResult.success) {
       return res.status(400).json({
         error: "Invalid input",
-        details: validationResult.error.errors,
+        details: validationResult.error.issues,
       });
     }
 
@@ -237,14 +271,17 @@ router.post("/entry/:date", authHandle, async (req, res) => {
         new: true,
         upsert: true,
         runValidators: true,
-      }
+      },
     );
+
+    // Invalidate cache for this entry and its month
+    await cache.invalidateEntry(userId, entryDate);
 
     return res.json(entry);
   } catch (error) {
     logger.error(
-      { err: error, userId, date: dateParam },
-      "Error creating/updating entry"
+      { err: error, userId: req.userId, date: req.params.date },
+      "Error creating/updating entry",
     );
     return res.status(500).json({ error: "Error creating/updating entry" });
   }
