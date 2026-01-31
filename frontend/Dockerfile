@@ -1,12 +1,12 @@
-# Use lightweight alpine-based image
-FROM oven/bun:alpine AS base
+# Use Node.js Alpine for building (more reliable on CI)
+FROM node:22-alpine AS base
 
 # Install dependencies only when needed
 FROM base AS deps
 WORKDIR /app
 COPY package.json bun.lock ./
-# --frozen-lockfile ensures reproducible builds
-RUN bun install --frozen-lockfile
+# Use npm for installing dependencies
+RUN npm install
 
 # Rebuild the source code only when needed
 FROM base AS builder
@@ -18,14 +18,14 @@ COPY . .
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
-# Disable telemetry during the build.
-ENV NEXT_TELEMETRY_DISABLED 1
+# Disable telemetry during the build
+ENV NEXT_TELEMETRY_DISABLED=1
 
-# Build the application
-RUN bun run build
+# Build the application using npm
+RUN npm run build
 
-# Production image, copy all the files and run next
-FROM base AS runner
+# Production image - use Node.js Alpine for running
+FROM node:22-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
@@ -52,4 +52,4 @@ USER nextjs
 EXPOSE 3000
 
 # server.js is created by next build from the standalone output
-CMD ["bun", "server.js"]
+CMD ["node", "server.js"]

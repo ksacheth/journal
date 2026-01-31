@@ -99,7 +99,7 @@ export default function EntryPage() {
     tags: string[];
     todos: Todo[];
   }) => {
-    setError(null);
+    setSaveError(null);
 
     try {
       const year = entryData.date.getFullYear();
@@ -126,7 +126,7 @@ export default function EntryPage() {
         error instanceof Error && error.message
           ? error.message
           : "Unable to save entry right now.";
-      setError(message);
+      setSaveError(message);
       throw error;
     }
   };
