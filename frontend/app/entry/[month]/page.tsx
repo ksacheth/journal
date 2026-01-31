@@ -1,8 +1,15 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { ChevronLeft, ChevronRight, CalendarDays, LogOut } from "lucide-react";
+import { signOut } from "@/lib/api";
+import { useMonthlyEntries } from "@/lib/swr-hooks";
+import { 
+  getPendingMood, 
+  clearPendingMood,
+} from "@/lib/optimisticUpdates";
+import { clearOfflineData } from "@/lib/offlineStorage";
 
 interface Entry {
   date: string;
@@ -88,78 +95,44 @@ export default function CalendarPage() {
   const initial = getInitialMonth();
   const [currentMonth, setCurrentMonth] = useState<number>(initial.month);
   const [currentYear, setCurrentYear] = useState<number>(initial.year);
-  const [entries, setEntries] = useState<Entry[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  
+  // Use SWR for data fetching with automatic caching and revalidation
+  const { 
+    entries: serverEntries, 
+    isLoading, 
+    error: swrError,
+    mutate,
+  } = useMonthlyEntries(currentYear, currentMonth);
 
-  const toLocalDateKey = (value: string) => {
-    const date = new Date(value);
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  };
+  // Track optimistic updates from sessionStorage (for returning from entry page)
+  const [optimisticEntries, setOptimisticEntries] = useState<Entry[]>([]);
 
-  const fetchEntries = useCallback(async (year: number, month: number) => {
-    setLoading(true);
-    setError(null);
+  // Check for pending optimistic updates on mount and visibility change
+  useEffect(() => {
+    const checkPendingUpdates = () => {
+      const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+      const pending: Entry[] = [];
 
-    const token = getAuthToken();
-    if (!token) {
-      setEntries([]);
-      setError("Sign in to load your entries.");
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const monthStr = String(month + 1).padStart(2, "0");
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/entries/${year}-${monthStr}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          cache: "no-store",
-        },
-      );
-
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        const message = data.error ?? "Unable to load entries.";
-        throw new Error(message);
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+        const pendingMood = getPendingMood(dateStr);
+        
+        if (pendingMood) {
+          pending.push({ date: dateStr, mood: pendingMood });
+        }
       }
 
-      const data = await response.json();
-      const mappedEntries = (data.entries || []).map((entry: Entry) => ({
-        date: toLocalDateKey(entry.date),
-        mood: entry.mood,
-      }));
+      setOptimisticEntries(pending);
+    };
 
-      setEntries(mappedEntries);
-    } catch (error) {
-      console.error("Error fetching entries:", error);
-      setEntries([]);
-      setError("Unable to load entries right now.");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    checkPendingUpdates();
 
-  useEffect(() => {
-    const { month: monthNum, year } = parseMonthParam(monthParam);
-
-    setCurrentMonth(monthNum);
-    setCurrentYear(year);
-
-    fetchEntries(year, monthNum);
-  }, [monthParam, fetchEntries]);
-
-  // Refetch when page becomes visible (returning from entry detail page)
-  useEffect(() => {
+    // Listen for visibility changes to check for new optimistic updates
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
-        fetchEntries(currentYear, currentMonth);
+        checkPendingUpdates();
+        // Trigger a silent revalidation in the background (no loading state)
+        mutate();
       }
     };
 
@@ -167,25 +140,35 @@ export default function CalendarPage() {
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [currentYear, currentMonth, fetchEntries]);
+  }, [currentYear, currentMonth, mutate]);
 
-  const getAuthToken = () => {
-    if (typeof window === "undefined") {
-      return null;
+  // Merge server entries with optimistic entries
+  const entries = useMemo(() => {
+    const merged = new Map<string, Entry>();
+    
+    // Add server entries first
+    serverEntries.forEach((entry) => {
+      merged.set(entry.date, entry);
+    });
+    
+    // Override with optimistic updates
+    optimisticEntries.forEach((entry) => {
+      merged.set(entry.date, entry);
+    });
+    
+    return Array.from(merged.values());
+  }, [serverEntries, optimisticEntries]);
+
+  const error = swrError ? "Unable to load entries right now." : null;
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      await clearOfflineData();
+    } catch (error) {
+      console.error("Sign out error:", error);
     }
-
-    return (
-      window.localStorage.getItem("authToken") ??
-      process.env.NEXT_PUBLIC_AUTH_TOKEN ??
-      null
-    );
-  };
-
-  const handleSignOut = () => {
-    if (typeof window !== "undefined") {
-      window.localStorage.removeItem("authToken");
-      router.push("/signin");
-    }
+    router.push("/signin");
   };
 
   const getDaysInMonth = (year: number, month: number) => {
@@ -324,7 +307,7 @@ export default function CalendarPage() {
           </div>
 
           {/* Calendar Grid */}
-          {loading ? (
+          {isLoading ? (
             <div className="py-16 text-center">
               <div className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-lg font-bold text-transparent">
                 Loading your colorful calendar... ✨

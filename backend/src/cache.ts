@@ -1,16 +1,9 @@
 import Redis from "ioredis";
-import { logger } from "./config";
+import { logger, CACHE_TTL } from "./config";
 
 // Redis client configuration
 const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
 const CACHE_ENABLED = process.env.CACHE_ENABLED !== "false";
-
-// TTL (Time To Live) in seconds
-const CACHE_TTL = {
-  ENTRY: 60 * 60, // 1 hour - single entry
-  MONTH: 60 * 30, // 30 minutes - monthly entries list
-  USER_ENTRIES: 60 * 60 * 24, // 24 hours - user's all entries metadata (reserved for future use)
-};
 
 class CacheManager {
   private client: Redis | null = null;

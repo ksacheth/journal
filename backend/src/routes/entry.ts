@@ -7,6 +7,18 @@ import { cache } from "../cache";
 
 const router = express.Router();
 
+/**
+ * Sanitize user input to prevent XSS attacks
+ * Removes HTML tags but preserves the original text content
+ */
+function sanitizeInput(input: string | undefined): string | undefined {
+  if (!input) return undefined;
+  
+  // Remove HTML tags but keep the text content
+  // This prevents script injection while preserving the user's text
+  return input.replace(/<[^>]*>/g, "");
+}
+
 router.get("/entries/:month", authHandle, async (req, res) => {
   try {
     const monthParam = req.params.month as string;
@@ -224,6 +236,10 @@ router.post("/entry/:date", authHandle, async (req, res) => {
 
     const { title, text, mood, todos, tags } = validationResult.data;
 
+    // Sanitize text input to prevent XSS
+    const sanitizedText = sanitizeInput(text);
+    const sanitizedTitle = sanitizeInput(title);
+
     // Parse date parameter (format: "YYYY-MM-DD")
     const [yearStr, monthStr, dayStr] = dateParam.split("-");
     const parsedYear = Number.parseInt(yearStr ?? "", 10);
@@ -261,8 +277,8 @@ router.post("/entry/:date", authHandle, async (req, res) => {
       {
         userId: userId,
         date: entryDate,
-        title: title || undefined,
-        text: text || undefined,
+        title: sanitizedTitle,
+        text: sanitizedText,
         mood: mood,
         todos: todos || undefined,
         tags: tags || undefined,

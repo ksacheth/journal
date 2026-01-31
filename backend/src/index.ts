@@ -1,6 +1,7 @@
 import express, { type ErrorRequestHandler } from "express";
 import cors from "cors";
-import { connectDb } from "./db";
+import cookieParser from "cookie-parser";
+import { connectDb, isDbHealthy } from "./db";
 import authRoutes from "./routes/auth";
 import entryRoutes from "./routes/entry";
 import { logger } from "./config";
@@ -32,6 +33,7 @@ process.on("SIGINT", async () => {
 });
 
 app.use(express.json());
+app.use(cookieParser());
 
 // Configure CORS
 const corsOrigins = (process.env.CORS_ORIGIN ?? "http://localhost:3000")
@@ -53,7 +55,7 @@ connectDb().catch((error) => {
 });
 
 app.get("/api/health", async (req, res) => {
-  const dbHealthy = await checkDbHealth();
+  const dbHealthy = isDbHealthy();
   const cacheHealthy = cache.isHealthy();
 
   const status = dbHealthy && cacheHealthy ? "healthy" : "degraded";
@@ -66,16 +68,6 @@ app.get("/api/health", async (req, res) => {
     timestamp: new Date().toISOString(),
   });
 });
-
-async function checkDbHealth(): Promise<boolean> {
-  try {
-    await connectDb();
-    return true;
-  } catch (error) {
-    logger.error({ err: error }, "Health check database error");
-    return false;
-  }
-}
 
 // Use Routes
 app.use("/api", authRoutes);
