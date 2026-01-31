@@ -25,7 +25,10 @@ export const fetchClient = async (
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || errorData.error || "An error occurred");
+    const error = new Error(errorData.message || errorData.error || "An error occurred");
+    // Attach status code for error handling
+    (error as Error & { status: number }).status = response.status;
+    throw error;
   }
 
   return response.json();

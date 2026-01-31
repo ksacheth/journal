@@ -35,6 +35,9 @@ process.on("SIGINT", async () => {
 app.use(express.json());
 app.use(cookieParser());
 
+// Trust proxy (required for rate limiting to work correctly with nginx)
+app.set("trust proxy", 1);
+
 // Configure CORS
 const corsOrigins = (process.env.CORS_ORIGIN ?? "http://localhost:3000")
   .split(",")

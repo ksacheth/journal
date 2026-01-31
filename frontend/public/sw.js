@@ -5,6 +5,117 @@ const STATIC_ASSETS = [
   '/signin',
 ];
 
+// Open IndexedDB for API caching
+const DB_NAME = 'journal-sw-cache';
+const DB_VERSION = 1;
+
+async function openSWDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
+    
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains('api-cache')) {
+        db.createObjectStore('api-cache', { keyPath: 'url' });
+      }
+      if (!db.objectStoreNames.contains('pending-posts')) {
+        const store = db.createObjectStore('pending-posts', { keyPath: 'id', autoIncrement: true });
+        store.createIndex('by-timestamp', 'timestamp');
+      }
+    };
+  });
+}
+
+// Store API response in IndexedDB
+async function cacheAPIResponse(url, data) {
+  try {
+    const db = await openSWDB();
+    const transaction = db.transaction('api-cache', 'readwrite');
+    const store = transaction.objectStore('api-cache');
+    await store.put({ url, data, timestamp: Date.now() });
+  } catch (error) {
+    console.error('Failed to cache API response:', error);
+  }
+}
+
+// Get cached API response from IndexedDB
+async function getCachedAPIResponse(url) {
+  try {
+    const db = await openSWDB();
+    const transaction = db.transaction('api-cache', 'readonly');
+    const store = transaction.objectStore('api-cache');
+    const request = store.get(url);
+    
+    return new Promise((resolve, reject) => {
+      request.onsuccess = () => resolve(request.result?.data || null);
+      request.onerror = () => reject(request.error);
+    });
+  } catch (error) {
+    console.error('Failed to get cached API response:', error);
+    return null;
+  }
+}
+
+// Store pending POST for background sync
+async function queuePendingPost(url, method, body, headers) {
+  try {
+    const db = await openSWDB();
+    const transaction = db.transaction('pending-posts', 'readwrite');
+    const store = transaction.objectStore('pending-posts');
+    await store.put({
+      url,
+      method,
+      body,
+      headers: Object.fromEntries(headers.entries()),
+      timestamp: Date.now(),
+    });
+    
+    // Register for background sync
+    if (self.registration.sync) {
+      await self.registration.sync.register('sync-entries');
+    }
+    
+    return { queued: true, message: 'Request queued for sync when online' };
+  } catch (error) {
+    console.error('Failed to queue pending post:', error);
+    throw error;
+  }
+}
+
+// Get all pending posts
+async function getPendingPosts() {
+  try {
+    const db = await openSWDB();
+    const transaction = db.transaction('pending-posts', 'readonly');
+    const store = transaction.objectStore('pending-posts');
+    const index = store.index('by-timestamp');
+    const request = index.getAll();
+    
+    return new Promise((resolve, reject) => {
+      request.onsuccess = () => resolve(request.result || []);
+      request.onerror = () => reject(request.error);
+    });
+  } catch (error) {
+    console.error('Failed to get pending posts:', error);
+    return [];
+  }
+}
+
+// Remove a pending post
+async function removePendingPost(id) {
+  try {
+    const db = await openSWDB();
+    const transaction = db.transaction('pending-posts', 'readwrite');
+    const store = transaction.objectStore('pending-posts');
+    await store.delete(id);
+  } catch (error) {
+    console.error('Failed to remove pending post:', error);
+  }
+}
+
 // Install event - cache essential assets
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -45,16 +156,23 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Skip non-GET requests
-  if (request.method !== 'GET') {
-    // Handle POST requests for offline support
-    if (request.method === 'POST' && isAPIRequest(url.href)) {
-      handleOfflinePost(event);
-    }
+  // Skip non-GET requests (except POSTs which we handle specially)
+  if (request.method !== 'GET' && request.method !== 'POST') {
     return;
   }
 
-  // API requests: Network first, cache fallback, with background sync
+  // Handle POST requests for offline support
+  if (request.method === 'POST' && isAPIRequest(url.href)) {
+    event.respondWith(handleOfflinePost(request));
+    return;
+  }
+
+  // Skip non-GET for the rest
+  if (request.method !== 'GET') {
+    return;
+  }
+
+  // API requests: Network first, cache fallback
   if (isAPIRequest(url.href)) {
     event.respondWith(handleAPIRequest(request));
     return;
@@ -102,9 +220,10 @@ async function handleAPIRequest(request) {
     const networkResponse = await fetch(request);
     
     if (networkResponse.ok) {
-      // Clone and store in IndexedDB via message to client
+      // Clone and store in IndexedDB
       const clone = networkResponse.clone();
-      cacheInIndexedDB(request.url, clone);
+      const data = await clone.json();
+      await cacheAPIResponse(request.url, data);
     }
     
     return networkResponse;
@@ -112,81 +231,49 @@ async function handleAPIRequest(request) {
     console.log('Network failed, trying IndexedDB:', error);
     
     // Try to get from IndexedDB
-    const cached = await getFromIndexedDB(request.url);
+    const cached = await getCachedAPIResponse(request.url);
     if (cached) {
+      console.log('Serving from IndexedDB cache:', request.url);
       return new Response(JSON.stringify(cached), {
         headers: { 'Content-Type': 'application/json' },
       });
     }
     
-    throw error;
+    // No cached data available
+    return new Response(
+      JSON.stringify({ error: 'Network error and no cached data available' }),
+      { 
+        status: 503, 
+        headers: { 'Content-Type': 'application/json' }
+      }
+    );
   }
 }
 
 // Handle offline POST requests
-function handleOfflinePost(event) {
-  event.respondWith(
-    fetch(event.request).catch((error) => {
-      console.log('POST failed, queuing for background sync:', error);
-      
-      // Queue for background sync
-      return queueForSync(event.request);
-    })
-  );
-}
-
-// Queue a request for background sync
-async function queueForSync(request) {
-  const clone = request.clone();
-  const body = await clone.json();
-  
-  // Store in IndexedDB for later sync
-  // This will be handled by the client-side code
-  return new Response(
-    JSON.stringify({ 
-      queued: true, 
-      message: 'Request queued for sync when online' 
-    }),
-    { 
-      status: 202,
-      headers: { 'Content-Type': 'application/json' }
-    }
-  );
-}
-
-// Message handling for IndexedDB operations
-self.addEventListener('message', (event) => {
-  if (event.data.type === 'INDEXEDDB_READY') {
-    // Client is ready, can now communicate
-    console.log('Client ready for IndexedDB operations');
-  }
-});
-
-// Helper to cache data in IndexedDB (via client)
-async function cacheInIndexedDB(url, response) {
+async function handleOfflinePost(request) {
   try {
-    const data = await response.json();
-    
-    // Broadcast to all clients to cache this data
-    const clients = await self.clients.matchAll();
-    clients.forEach((client) => {
-      client.postMessage({
-        type: 'CACHE_DATA',
-        url,
-        data,
-      });
-    });
+    // Try network first
+    const response = await fetch(request);
+    return response;
   } catch (error) {
-    console.error('Error caching in IndexedDB:', error);
+    console.log('POST failed, queuing for background sync:', error);
+    
+    // Clone request to read body
+    const clone = request.clone();
+    const body = await clone.json();
+    
+    // Queue for background sync
+    const queued = await queuePendingPost(request.url, request.method, body, request.headers);
+    
+    return new Response(
+      JSON.stringify(queued),
+      { 
+        status: 202,
+        headers: { 'Content-Type': 'application/json' }
+      }
+    );
   }
-}
-
-// Helper to get data from IndexedDB (via client)
-async function getFromIndexedDB(url) {
-  // This is a placeholder - the actual implementation
-  // will be handled by the client-side code that listens
-  // for messages from the service worker
-  return null;
 }
 
 // Background sync event
@@ -198,16 +285,48 @@ self.addEventListener('sync', (event) => {
 
 // Sync pending entries
 async function syncPendingEntries() {
-  // This will be implemented to sync queued entries
-  // when the device comes back online
   console.log('Syncing pending entries...');
+  
+  const pendingPosts = await getPendingPosts();
+  console.log(`Found ${pendingPosts.length} pending posts to sync`);
+  
+  for (const post of pendingPosts) {
+    try {
+      const response = await fetch(post.url, {
+        method: post.method,
+        headers: {
+          'Content-Type': 'application/json',
+          ...post.headers,
+        },
+        body: JSON.stringify(post.body),
+      });
+      
+      if (response.ok) {
+        console.log('Successfully synced post:', post.url);
+        await removePendingPost(post.id);
+      } else {
+        console.error('Failed to sync post:', post.url, response.status);
+      }
+    } catch (error) {
+      console.error('Error syncing post:', post.url, error);
+    }
+  }
 }
+
+// Message handling for client communication
+self.addEventListener('message', (event) => {
+  if (event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
 
 // Online/offline events
 self.addEventListener('online', () => {
   console.log('Service worker is online');
   // Trigger background sync
-  self.registration.sync.register('sync-entries');
+  if (self.registration.sync) {
+    self.registration.sync.register('sync-entries');
+  }
 });
 
 self.addEventListener('offline', () => {

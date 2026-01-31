@@ -81,13 +81,15 @@ async function entryFetcher(dateStr: string): Promise<Entry | null> {
       return data;
     }
   } catch (error) {
-    if (error instanceof Error && error.message?.includes('404')) {
+    // 404 means entry doesn't exist - return null
+    if (error instanceof Error && (error as Error & { status: number }).status === 404) {
       return null;
     }
-    console.warn('Network fetch failed, falling back to cache:', error);
+    // Rethrow other errors (401, 500, etc.) so SWR can handle them
+    throw error;
   }
 
-  // Fallback to offline cache
+  // Fallback to offline cache when offline
   const cached = await getEntryOffline(dateStr);
   return cached || null;
 }
@@ -191,12 +193,55 @@ export async function saveEntry(
     body: JSON.stringify(entryData),
   });
   
+  // Check if result is a queued response from service worker (offline mode)
+  if (result && typeof result === 'object' && 'queued' in result && result.queued === true) {
+    // Service worker queued the request for later sync
+    // Keep the optimistic entry in cache
+    await globalMutate(entryKey, optimisticEntry, false);
+    
+    // Also update the monthly entries cache with optimistic data
+    const [year, month] = dateStr.split('-').map(Number);
+    const monthlyKey = ['monthly-entries', year, month - 1];
+    const newEntryItem = { date: dateStr, mood: entryData.mood };
+    
+    await globalMutate(
+      monthlyKey,
+      async (currentData: MonthlyEntriesResponse | undefined) => {
+        if (!currentData) return currentData;
+        
+        const existingIndex = currentData.entries.findIndex(e => e.date === dateStr);
+        
+        let newEntries;
+        if (existingIndex >= 0) {
+          // Update existing
+          newEntries = [...currentData.entries];
+          newEntries[existingIndex] = newEntryItem;
+        } else {
+          // Add new
+          newEntries = [...currentData.entries, newEntryItem];
+        }
+        
+        // Sort by date
+        newEntries.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        
+        return {
+          ...currentData,
+          entries: newEntries,
+        };
+      },
+      false
+    );
+    
+    return optimisticEntry;
+  }
+  
   // Update cache with server response
   await globalMutate(entryKey, result, false);
   
   // Also update the monthly entries cache if it exists
   const [year, month] = dateStr.split('-').map(Number);
   const monthlyKey = ['monthly-entries', year, month - 1];
+  const newEntryItem = { date: dateStr, mood: entryData.mood };
   
   await globalMutate(
     monthlyKey,
@@ -204,7 +249,6 @@ export async function saveEntry(
       if (!currentData) return currentData;
       
       const existingIndex = currentData.entries.findIndex(e => e.date === dateStr);
-      const newEntryItem = { date: dateStr, mood: entryData.mood };
       
       let newEntries;
       if (existingIndex >= 0) {

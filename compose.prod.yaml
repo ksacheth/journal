@@ -47,7 +47,7 @@ services:
       - MONGODB_URL=${MONGODB_URL}
       - JWT_SECRET=${JWT_SECRET}
       - PORT=3001
-      - CORS_ORIGIN=http://localhost
+      - CORS_ORIGIN=${CORS_ORIGIN:-https://your-production-domain.com}
       - REDIS_URL=redis://redis:6379
       - CACHE_ENABLED=true
     depends_on:

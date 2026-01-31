@@ -1,3 +1,5 @@
+"use client";
+
 import DOMPurify from "dompurify";
 
 /**
@@ -16,16 +18,4 @@ export function sanitizeInput(input: string): string {
   });
 
   return sanitized;
-}
-
-/**
- * Sanitize text for safe display in the UI
- * Escapes HTML entities to prevent XSS
- */
-export function escapeHtml(text: string): string {
-  if (!text) return "";
-
-  const div = document.createElement("div");
-  div.textContent = text;
-  return div.innerHTML;
 }

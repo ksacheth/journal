@@ -10,20 +10,37 @@ const connectionOptions: mongoose.ConnectOptions = {
   bufferCommands: false, // Disable buffering when not connected
 };
 
-export async function connectDb() {
+// Track in-flight connection promise to prevent concurrent connection attempts
+let inFlightConnectionPromise: Promise<void> | null = null;
+
+export async function connectDb(): Promise<void> {
   // Check if already connected to avoid reconnection
   if (mongoose.connection.readyState === 1) {
     logger.debug("Database connection already established");
     return;
   }
 
-  try {
-    await mongoose.connect(MONGODB_URL, connectionOptions);
-    logger.info("Connected to database");
-  } catch (error) {
-    logger.error({ err: error }, "Error while connecting to database");
-    throw error;
+  // Check if already connecting (readyState === 2) and return the in-flight promise
+  if (inFlightConnectionPromise) {
+    logger.debug("Connection already in progress, awaiting existing promise");
+    return inFlightConnectionPromise;
   }
+
+  // Create new connection promise
+  inFlightConnectionPromise = (async () => {
+    try {
+      await mongoose.connect(MONGODB_URL, connectionOptions);
+      logger.info("Connected to database");
+    } catch (error) {
+      logger.error({ err: error }, "Error while connecting to database");
+      throw error;
+    } finally {
+      // Clear the in-flight promise on success or error
+      inFlightConnectionPromise = null;
+    }
+  })();
+
+  return inFlightConnectionPromise;
 }
 
 /**

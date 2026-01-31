@@ -81,4 +81,3 @@ networks:
 
 volumes:
   redis-data:
-    driver: bridge

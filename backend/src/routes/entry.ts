@@ -1,4 +1,6 @@
 import express from "express";
+import { JSDOM } from "jsdom";
+import DOMPurify from "dompurify";
 import { EntryModel } from "../models/Entry";
 import { authHandle } from "../middleware/auth";
 import { entrySchema } from "../validators";
@@ -7,16 +9,28 @@ import { cache } from "../cache";
 
 const router = express.Router();
 
+// Initialize DOMPurify with jsdom for server-side sanitization
+const window = new JSDOM("").window;
+const purify = DOMPurify(window);
+
 /**
  * Sanitize user input to prevent XSS attacks
- * Removes HTML tags but preserves the original text content
+ * Uses DOMPurify to robustly parse and sanitize HTML input
+ * Removes all HTML tags and returns plain text content
  */
 function sanitizeInput(input: string | undefined): string | undefined {
   if (!input) return undefined;
   
-  // Remove HTML tags but keep the text content
-  // This prevents script injection while preserving the user's text
-  return input.replace(/<[^>]*>/g, "");
+  // Use DOMPurify to sanitize HTML
+  // This handles malformed/unclosed tags properly
+  // ALLOWED_TAGS: [] means no HTML tags are allowed - treated as plain text
+  const sanitized = purify.sanitize(input, {
+    ALLOWED_TAGS: [],
+    ALLOWED_ATTR: [],
+    KEEP_CONTENT: true,
+  });
+  
+  return sanitized;
 }
 
 router.get("/entries/:month", authHandle, async (req, res) => {

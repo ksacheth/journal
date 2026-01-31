@@ -73,7 +73,9 @@ class OptimisticUpdates {
   }
 
   private notifyListeners(): void {
-    this.listeners.forEach((listener) => listener());
+    for (const listener of this.listeners) {
+      listener();
+    }
   }
 }
 

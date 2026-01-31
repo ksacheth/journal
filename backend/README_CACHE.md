@@ -37,7 +37,7 @@ Set `CACHE_ENABLED=false` to disable caching without removing code.
 
 ## Architecture
 
-```
+```text
 ┌─────────────┐
 │   Client    │
 └──────┬──────┘
@@ -80,10 +80,10 @@ Set `CACHE_ENABLED=false` to disable caching without removing code.
 
 ## Cache TTL Strategy
 
-| Data Type | TTL | Reasoning |
-|-----------|-----|-----------|
-| Single Entry | 1 hour | Entries rarely change after creation |
-| Monthly List | 30 min | Balance between freshness and performance |
+| Data Type    | TTL      | Reasoning                                  |
+| ------------ | -------- | ------------------------------------------ |
+| Single Entry | 1 hour   | Entries rarely change after creation       |
+| Monthly List | 30 min   | Balance between freshness and performance  |
 
 ## Monitoring Cache Performance
 
@@ -137,28 +137,41 @@ REDIS_URL=redis://localhost:6379
 ## Testing Cache
 
 ### Test Cache Hit
+
+**Note:** The API uses cookie-based authentication with httpOnly cookies. Use `-c` to save cookies (signin) and `-b` to send cookies (subsequent requests).
+
 ```bash
-# First request (cache miss)
-curl -H "Authorization: Bearer <token>" \
+# First, sign in to get the auth cookie (saves to cookiejar)
+curl -c cookiejar -X POST http://localhost:3001/api/signin \
+  -H "Content-Type: application/json" \
+  -d '{"username":"your_username","password":"your_password"}'
+
+# First request (cache miss) - uses saved cookie
+curl -b cookiejar \
   http://localhost:3001/api/entries/2025-01
 
-# Second request (cache hit - much faster)
-curl -H "Authorization: Bearer <token>" \
+# Second request (cache hit - much faster) - reuses same cookie
+curl -b cookiejar \
   http://localhost:3001/api/entries/2025-01
 ```
 
 ### Test Cache Invalidation
 ```bash
-# Create/update entry
-curl -X POST -H "Authorization: Bearer <token>" \
+# Create/update entry (uses cookie from cookiejar)
+curl -b cookiejar -X POST \
   -H "Content-Type: application/json" \
   -d '{"mood":"good","text":"Test"}' \
   http://localhost:3001/api/entry/2025-01-15
 
 # Verify cache was cleared (next request will be cache miss)
-curl -H "Authorization: Bearer <token>" \
+curl -b cookiejar \
   http://localhost:3001/api/entries/2025-01
 ```
+
+**Cookie Flags Explained:**
+- `-c cookiejar`: Save cookies to file (use with signin)
+- `-b cookiejar`: Send cookies from file (use for authenticated requests)
+- The `authToken` cookie is httpOnly (JavaScript can't access it) and secure
 
 ## Troubleshooting
 
