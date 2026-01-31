@@ -12,15 +12,23 @@ declare global {
 }
 
 export const authHandle = (req: Request, res: Response, next: NextFunction) => {
-  const authHeader = req.headers["authorization"];
-  if (!authHeader) {
-    return res.status(401).json({ error: "Authorization header missing" });
+  // Try to get token from cookie first (more secure), fall back to Authorization header
+  let token: string | undefined;
+
+  // Check for authToken cookie (httpOnly)
+  if (req.cookies && req.cookies.authToken) {
+    token = req.cookies.authToken;
+  } else {
+    // Fallback to Authorization header for backward compatibility
+    const authHeader = req.headers["authorization"];
+    if (authHeader) {
+      // Extract token from "Bearer <token>" format
+      token = authHeader.split(" ")[1];
+    }
   }
 
-  // Extract token from "Bearer <token>" format
-  const token = authHeader.split(" ")[1];
   if (!token) {
-    return res.status(401).json({ error: "Invalid authorization format" });
+    return res.status(401).json({ error: "Authorization token missing" });
   }
 
   if (!JWT_SECRET) {

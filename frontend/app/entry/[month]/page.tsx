@@ -1,8 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { ChevronLeft, ChevronRight, CalendarDays, LogOut } from "lucide-react";
+import { signOut } from "@/lib/api";
+import { useMonthlyEntries } from "@/lib/swr-hooks";
+import { 
+  getPendingMood, 
+  clearPendingMood,
+} from "@/lib/optimisticUpdates";
+import { clearOfflineData } from "@/lib/offlineStorage";
 
 interface Entry {
   date: string;
@@ -88,89 +95,80 @@ export default function CalendarPage() {
   const initial = getInitialMonth();
   const [currentMonth, setCurrentMonth] = useState<number>(initial.month);
   const [currentYear, setCurrentYear] = useState<number>(initial.year);
-  const [entries, setEntries] = useState<Entry[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  
+  // Use SWR for data fetching with automatic caching and revalidation
+  const { 
+    entries: serverEntries, 
+    isLoading, 
+    error: swrError,
+    mutate,
+  } = useMonthlyEntries(currentYear, currentMonth);
 
-  const toLocalDateKey = (value: string) => {
-    const date = new Date(value);
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  };
+  // Track optimistic updates from sessionStorage (for returning from entry page)
+  const [optimisticEntries, setOptimisticEntries] = useState<Entry[]>([]);
 
+  // Check for pending optimistic updates on mount and visibility change
   useEffect(() => {
-    const { month: monthNum, year } = parseMonthParam(monthParam);
+    const checkPendingUpdates = () => {
+      const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+      const pending: Entry[] = [];
 
-    setCurrentMonth(monthNum);
-    setCurrentYear(year);
-
-    const fetchEntries = async (year: number, month: number) => {
-      setLoading(true);
-      setError(null);
-
-      const token = getAuthToken();
-      if (!token) {
-        setEntries([]);
-        setError("Sign in to load your entries.");
-        setLoading(false);
-        return;
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+        const pendingMood = getPendingMood(dateStr);
+        
+        if (pendingMood) {
+          pending.push({ date: dateStr, mood: pendingMood });
+        }
       }
 
-      try {
-        const monthStr = String(month + 1).padStart(2, "0");
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/entries/${year}-${monthStr}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+      setOptimisticEntries(pending);
+    };
 
-        if (!response.ok) {
-          const data = await response.json().catch(() => ({}));
-          const message = data.error ?? "Unable to load entries.";
-          throw new Error(message);
-        }
+    checkPendingUpdates();
 
-        const data = await response.json();
-        const mappedEntries = (data.entries || []).map((entry: Entry) => ({
-          date: toLocalDateKey(entry.date),
-          mood: entry.mood,
-        }));
-
-        setEntries(mappedEntries);
-      } catch (error) {
-        console.error("Error fetching entries:", error);
-        setEntries([]);
-        setError("Unable to load entries right now.");
-      } finally {
-        setLoading(false);
+    // Listen for visibility changes to check for new optimistic updates
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        checkPendingUpdates();
+        // Trigger a silent revalidation in the background (no loading state)
+        mutate();
       }
     };
 
-    fetchEntries(year, monthNum);
-  }, [monthParam]);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [currentYear, currentMonth, mutate]);
 
-  const getAuthToken = () => {
-    if (typeof window === "undefined") {
-      return null;
+  // Merge server entries with optimistic entries
+  const entries = useMemo(() => {
+    const merged = new Map<string, Entry>();
+    
+    // Add server entries first
+    serverEntries.forEach((entry) => {
+      merged.set(entry.date, entry);
+    });
+    
+    // Override with optimistic updates
+    optimisticEntries.forEach((entry) => {
+      merged.set(entry.date, entry);
+    });
+    
+    return Array.from(merged.values());
+  }, [serverEntries, optimisticEntries]);
+
+  const error = swrError ? "Unable to load entries right now." : null;
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      await clearOfflineData();
+    } catch (error) {
+      console.error("Sign out error:", error);
     }
-
-    return (
-      window.localStorage.getItem("authToken") ??
-      process.env.NEXT_PUBLIC_AUTH_TOKEN ??
-      null
-    );
-  };
-
-  const handleSignOut = () => {
-    if (typeof window !== "undefined") {
-      window.localStorage.removeItem("authToken");
-      router.push("/signin");
-    }
+    router.push("/signin");
   };
 
   const getDaysInMonth = (year: number, month: number) => {
@@ -185,7 +183,7 @@ export default function CalendarPage() {
   const getEntryMood = (day: number): string | null => {
     const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(
       2,
-      "0"
+      "0",
     )}-${String(day).padStart(2, "0")}`;
     const entry = entries.find((e) => e.date === dateStr);
     return entry ? entry.mood : null;
@@ -247,7 +245,7 @@ export default function CalendarPage() {
             <CalendarDays className="h-5 w-5 text-accent" />
             <span className="hidden sm:inline">All Months</span>
           </button>
-          
+
           <button
             onClick={handleSignOut}
             className="smooth-transition flex items-center gap-2 rounded-xl border-2 border-primary/30 bg-surface p-2.5 sm:px-5 sm:py-3 text-sm font-bold text-text-primary shadow-md hover:scale-105 hover:border-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-primary/20 hover:shadow-lg"
@@ -265,7 +263,7 @@ export default function CalendarPage() {
           >
             <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
           </button>
-          
+
           <div className="text-center">
             <h1 className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-xl sm:text-3xl lg:text-4xl font-bold text-transparent">
               {monthsFull[currentMonth]} {currentYear}
@@ -276,7 +274,7 @@ export default function CalendarPage() {
               </span>
             </p>
           </div>
-          
+
           <button
             onClick={() => handleMonthChange("next")}
             className="smooth-transition flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl border-2 border-secondary bg-surface text-secondary shadow-md hover:scale-110 hover:border-primary hover:bg-gradient-to-br hover:from-primary/10 hover:to-secondary/10 hover:text-primary hover:shadow-lg"
@@ -309,14 +307,19 @@ export default function CalendarPage() {
           </div>
 
           {/* Calendar Grid */}
-          {loading ? (
+          {isLoading ? (
             <div className="py-16 text-center">
-              <div className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-lg font-bold text-transparent">Loading your colorful calendar... ✨</div>
+              <div className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-lg font-bold text-transparent">
+                Loading your colorful calendar... ✨
+              </div>
             </div>
           ) : (
             <div className="grid grid-cols-7 gap-1 sm:gap-2 lg:gap-3">
               {emptyDays.map((_, index) => (
-                <div key={`empty-${index}`} className="aspect-[1/1.3] sm:aspect-square" />
+                <div
+                  key={`empty-${index}`}
+                  className="aspect-[1/1.3] sm:aspect-square"
+                />
               ))}
               {days.map((day) => {
                 const mood = getEntryMood(day);
@@ -330,10 +333,14 @@ export default function CalendarPage() {
                       today
                         ? "pulse-glow border-primary bg-gradient-to-br from-primary/20 to-accent/20"
                         : mood
-                        ? "border-transparent hover:border-primary"
-                        : "border-border/50 bg-surface/50 hover:border-accent"
+                          ? "border-transparent hover:border-primary"
+                          : "border-border/50 bg-surface/50 hover:border-accent"
                     } hover:scale-105 hover:shadow-lg`}
-                    style={mood ? { backgroundColor: `${moodColors[mood]}15` } : undefined}
+                    style={
+                      mood
+                        ? { backgroundColor: `${moodColors[mood]}15` }
+                        : undefined
+                    }
                   >
                     <div className="flex h-full flex-col items-center justify-center">
                       {/* Show date and emoji */}
@@ -343,7 +350,9 @@ export default function CalendarPage() {
                             {day}
                           </span>
                           <div className="mt-0.5 sm:mt-1 flex items-center">
-                            <span className="text-base sm:text-lg">{moodEmojis[mood]}</span>
+                            <span className="text-base sm:text-lg">
+                              {moodEmojis[mood]}
+                            </span>
                           </div>
                         </>
                       ) : (
@@ -384,7 +393,10 @@ export default function CalendarPage() {
               }}
             >
               <span className="text-sm sm:text-base">{emoji}</span>
-              <span className="capitalize hidden sm:inline" style={{ color: moodColors[mood] }}>
+              <span
+                className="capitalize hidden sm:inline"
+                style={{ color: moodColors[mood] }}
+              >
                 {mood}
               </span>
             </div>

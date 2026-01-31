@@ -18,14 +18,11 @@ export default function SignIn() {
     setIsSubmitting(true);
 
     try {
-      const data = await fetchClient("/api/signin", {
+      await fetchClient("/api/signin", {
         method: "POST",
         body: JSON.stringify({ username, password }),
       });
 
-      if (data.token) {
-        localStorage.setItem("authToken", data.token);
-      }
       router.push("/entry");
     } catch (error) {
       setError(

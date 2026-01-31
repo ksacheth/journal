@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import JournalEntryModal from "@/components/JournalEntryModal";
+import { useEntry, saveEntry } from "@/lib/swr-hooks";
+import { storePendingMood } from "@/lib/optimisticUpdates";
 
 interface Todo {
   id: string;
@@ -13,9 +15,9 @@ interface Todo {
 interface Entry {
   date: Date;
   mood: string;
-  text: string;
-  tags: string[];
-  todos: Todo[];
+  text?: string;
+  tags?: string[];
+  todos?: Todo[];
 }
 
 export default function EntryPage() {
@@ -25,9 +27,11 @@ export default function EntryPage() {
   const dateParam = params.date as string;
 
   const [entryDate, setEntryDate] = useState<Date | null>(null);
-  const [entry, setEntry] = useState<Entry | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [dateStr, setDateStr] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Use SWR hook to fetch entry data
+  const { entry, isLoading, error: swrError } = useEntry(dateStr);
 
   useEffect(() => {
     // Parse date from URL params
@@ -55,91 +59,35 @@ export default function EntryPage() {
         month > 11
       ) {
         setError("Invalid date.");
-        setLoading(false);
         return;
       }
 
       const daysInMonth = new Date(year, month + 1, 0).getDate();
       if (day < 1 || day > daysInMonth) {
         setError("Invalid date.");
-        setLoading(false);
         return;
       }
 
       const date = new Date(year, month, day);
       setEntryDate(date);
 
-      const fetchEntry = async (dateToFetch: Date) => {
-        setLoading(true);
-        setError(null);
-
-        const token = getAuthToken();
-        if (!token) {
-          setEntry(null);
-          setError("Sign in to view this entry.");
-          setLoading(false);
-          return;
-        }
-
-        try {
-          const year = dateToFetch.getFullYear();
-          const month = String(dateToFetch.getMonth() + 1).padStart(2, "0");
-          const day = String(dateToFetch.getDate()).padStart(2, "0");
-          const dateStr = `${year}-${month}-${day}`;
-          const response = await fetch(
-            `${process.env.NEXT_PUBLIC_API_URL}/api/entry/${dateStr}`,
-            {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-            }
-          );
-
-          if (response.status === 404) {
-            setEntry(null);
-            return;
-          }
-
-          if (!response.ok) {
-            const data = await response.json().catch(() => ({}));
-            const message = data.error ?? "Unable to load entry.";
-            throw new Error(message);
-          }
-
-          const data = await response.json();
-          setEntry({
-            date: new Date(data.date),
-            mood: data.mood,
-            text: data.text ?? "",
-            tags: Array.isArray(data.tags) ? data.tags : [],
-            todos: Array.isArray(data.todos) ? data.todos : [],
-          });
-        } catch (error) {
-          console.error("Error fetching entry:", error);
-          setEntry(null);
-          setError("Unable to load entry right now.");
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      // Fetch existing entry for this date
-      fetchEntry(date);
+      const formattedYear = String(year);
+      const formattedMonth = String(month + 1).padStart(2, "0");
+      const formattedDay = String(day).padStart(2, "0");
+      setDateStr(`${formattedYear}-${formattedMonth}-${formattedDay}`);
     }
   }, [monthParam, dateParam]);
 
-  const getAuthToken = () => {
-    if (typeof window === "undefined") {
-      return null;
+  // Set error from SWR if present
+  useEffect(() => {
+    if (swrError) {
+      if (swrError.status === 401) {
+        setError("Sign in to view this entry.");
+      } else {
+        setError("Unable to load entry right now.");
+      }
     }
-
-    return (
-      window.localStorage.getItem("authToken") ??
-      process.env.NEXT_PUBLIC_AUTH_TOKEN ??
-      null
-    );
-  };
-
+  }, [swrError]);
 
   const handleSave = async (entryData: {
     date: Date;
@@ -149,61 +97,33 @@ export default function EntryPage() {
     todos: Todo[];
   }) => {
     setError(null);
-    const token = getAuthToken();
-
-    if (!token) {
-      const message = "Sign in to save entries.";
-      setError(message);
-      throw new Error(message);
-    }
 
     try {
       const year = entryData.date.getFullYear();
       const month = String(entryData.date.getMonth() + 1).padStart(2, "0");
       const day = String(entryData.date.getDate()).padStart(2, "0");
-      const dateStr = `${year}-${month}-${day}`;
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/entry/${dateStr}`,
-        {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          mood: entryData.mood,
-          text: entryData.text,
-          tags: entryData.tags,
-          todos: entryData.todos,
-        }),
-        }
-      );
+      const currentDateStr = `${year}-${month}-${day}`;
 
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        const message = data.error ?? "Unable to save entry.";
-        setError(message);
-        throw new Error(message);
-      }
-
-      const data = await response.json();
-      setEntry({
-        date: new Date(data.date),
-        mood: data.mood,
-        text: data.text ?? "",
-        tags: Array.isArray(data.tags) ? data.tags : [],
-        todos: Array.isArray(data.todos) ? data.todos : [],
+      // Save entry using SWR hook
+      await saveEntry(currentDateStr, {
+        mood: entryData.mood,
+        text: entryData.text,
+        tags: entryData.tags,
+        todos: entryData.todos,
       });
+
+      // Store mood for optimistic updates
+      storePendingMood(currentDateStr, entryData.mood);
 
       // Navigate back to calendar after saving
       router.push(`/entry/${year}-${month}`);
     } catch (error) {
       console.error("Error saving entry:", error);
-      setError(
+      const message =
         error instanceof Error && error.message
           ? error.message
-          : "Unable to save entry right now."
-      );
+          : "Unable to save entry right now.";
+      setError(message);
       throw error;
     }
   };
@@ -218,7 +138,7 @@ export default function EntryPage() {
     }
   };
 
-  if (loading || !entryDate) {
+  if (isLoading || !entryDate) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-text-tertiary">Loading...</div>
@@ -234,7 +154,12 @@ export default function EntryPage() {
         onClose={handleClose}
         onSave={handleSave}
         initialDate={entryDate}
-        initialEntry={entry ?? undefined}
+        initialEntry={entry ? {
+          mood: entry.mood,
+          text: entry.text || "",
+          tags: entry.tags || [],
+          todos: entry.todos || [],
+        } : undefined}
         errorMessage={error ?? undefined}
       />
     </div>
