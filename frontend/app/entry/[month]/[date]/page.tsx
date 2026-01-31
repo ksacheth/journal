@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import JournalEntryModal from "@/components/JournalEntryModal";
 import { useEntry, saveEntry } from "@/lib/swr-hooks";
@@ -12,12 +12,60 @@ interface Todo {
   completed: boolean;
 }
 
-interface Entry {
+interface EntryData {
   date: Date;
   mood: string;
   text?: string;
   tags?: string[];
   todos?: Todo[];
+}
+
+// Parse date from URL params and return entryDate, dateStr, and any validation error
+function useParsedDate(monthParam: string, dateParam: string) {
+  return useMemo(() => {
+    if (!monthParam || !dateParam) {
+      return { entryDate: null, dateStr: null, validationError: null };
+    }
+
+    let year: number;
+    let month: number;
+
+    if (monthParam.includes("-")) {
+      // Format: "2024-10"
+      const [yearStr, monthStr] = monthParam.split("-");
+      year = parseInt(yearStr, 10);
+      month = parseInt(monthStr, 10) - 1;
+    } else {
+      // Format: "10"
+      year = new Date().getFullYear();
+      month = parseInt(monthParam, 10) - 1;
+    }
+
+    const day = parseInt(dateParam, 10);
+    if (
+      Number.isNaN(year) ||
+      Number.isNaN(month) ||
+      Number.isNaN(day) ||
+      month < 0 ||
+      month > 11
+    ) {
+      return { entryDate: null, dateStr: null, validationError: "Invalid date." };
+    }
+
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    if (day < 1 || day > daysInMonth) {
+      return { entryDate: null, dateStr: null, validationError: "Invalid date." };
+    }
+
+    const entryDate = new Date(year, month, day);
+
+    const formattedYear = String(year);
+    const formattedMonth = String(month + 1).padStart(2, "0");
+    const formattedDay = String(day).padStart(2, "0");
+    const dateStr = `${formattedYear}-${formattedMonth}-${formattedDay}`;
+
+    return { entryDate, dateStr, validationError: null };
+  }, [monthParam, dateParam]);
 }
 
 export default function EntryPage() {
@@ -26,68 +74,23 @@ export default function EntryPage() {
   const monthParam = params.month as string;
   const dateParam = params.date as string;
 
-  const [entryDate, setEntryDate] = useState<Date | null>(null);
-  const [dateStr, setDateStr] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { entryDate, dateStr, validationError } = useParsedDate(monthParam, dateParam);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Use SWR hook to fetch entry data
   const { entry, isLoading, error: swrError } = useEntry(dateStr);
 
-  useEffect(() => {
-    // Parse date from URL params
-    if (monthParam && dateParam) {
-      let year: number;
-      let month: number;
-
-      if (monthParam.includes("-")) {
-        // Format: "2024-10"
-        const [yearStr, monthStr] = monthParam.split("-");
-        year = parseInt(yearStr, 10);
-        month = parseInt(monthStr, 10) - 1;
-      } else {
-        // Format: "10"
-        year = new Date().getFullYear();
-        month = parseInt(monthParam, 10) - 1;
-      }
-
-      const day = parseInt(dateParam, 10);
-      if (
-        Number.isNaN(year) ||
-        Number.isNaN(month) ||
-        Number.isNaN(day) ||
-        month < 0 ||
-        month > 11
-      ) {
-        setError("Invalid date.");
-        return;
-      }
-
-      const daysInMonth = new Date(year, month + 1, 0).getDate();
-      if (day < 1 || day > daysInMonth) {
-        setError("Invalid date.");
-        return;
-      }
-
-      const date = new Date(year, month, day);
-      setEntryDate(date);
-
-      const formattedYear = String(year);
-      const formattedMonth = String(month + 1).padStart(2, "0");
-      const formattedDay = String(day).padStart(2, "0");
-      setDateStr(`${formattedYear}-${formattedMonth}-${formattedDay}`);
-    }
-  }, [monthParam, dateParam]);
-
-  // Set error from SWR if present
-  useEffect(() => {
+  // Compute error state from validation and SWR errors
+  const error = useMemo(() => {
+    if (validationError) return validationError;
     if (swrError) {
       if (swrError.status === 401) {
-        setError("Sign in to view this entry.");
-      } else {
-        setError("Unable to load entry right now.");
+        return "Sign in to view this entry.";
       }
+      return "Unable to load entry right now.";
     }
-  }, [swrError]);
+    return saveError;
+  }, [validationError, swrError, saveError]);
 
   const handleSave = async (entryData: {
     date: Date;
