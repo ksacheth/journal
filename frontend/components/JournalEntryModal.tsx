@@ -406,15 +406,17 @@ export default function JournalEntryModal({
                   {editingTodoId !== todo.id && (
                     <>
                       <button
+                        type="button"
                         onClick={() => handleStartEditTodo(todo)}
-                        className="smooth-transition text-text-tertiary hover:scale-110 hover:text-primary"
+                        className="smooth-transition text-text-secondary hover:scale-110 hover:text-primary"
                         title="Edit task"
                       >
                         <Pencil className="h-4 w-4" />
                       </button>
                       <button
+                        type="button"
                         onClick={() => handleRemoveTodo(todo.id)}
-                        className="smooth-transition text-text-tertiary hover:scale-110 hover:text-error"
+                        className="smooth-transition text-text-secondary hover:scale-110 hover:text-error"
                         title="Delete task"
                       >
                         <X className="h-5 w-5" />
@@ -426,14 +428,20 @@ export default function JournalEntryModal({
                   {editingTodoId === todo.id && (
                     <div className="flex gap-1">
                       <button
-                        onClick={handleSaveEditTodo}
+                        onMouseDown={(e) => {
+                          e.preventDefault(); // Prevent blur from firing
+                          handleSaveEditTodo();
+                        }}
                         className="smooth-transition flex h-7 w-7 items-center justify-center rounded-lg bg-success text-white hover:scale-110"
                         title="Save (Enter)"
                       >
                         <Check className="h-4 w-4" />
                       </button>
                       <button
-                        onClick={handleCancelEditTodo}
+                        onMouseDown={(e) => {
+                          e.preventDefault(); // Prevent blur from firing
+                          handleCancelEditTodo();
+                        }}
                         className="smooth-transition flex h-7 w-7 items-center justify-center rounded-lg bg-gray-200 text-gray-600 hover:scale-110 hover:bg-gray-300"
                         title="Cancel (Escape)"
                       >
