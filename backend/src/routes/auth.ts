@@ -4,16 +4,22 @@ import bcrypt from "bcryptjs";
 import rateLimit from "express-rate-limit";
 import { UserModel } from "../models/User";
 import { JWT_SECRET, logger } from "../config";
-import { signupSchema, signinSchema } from "../validators";
+import { signinSchema } from "../validators";
 
 const router = express.Router();
 
-// Rate limiting for auth routes - 5 attempts per 15 minutes per IP
+// Rate limiting configuration
+const AUTH_RATE_LIMIT = {
+  WINDOW_MS: 15 * 60 * 1000, // 15 minutes
+  MAX_ATTEMPTS: 5,
+} as const;
+
+// Rate limiting for auth routes
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // limit each IP to 5 requests per windowMs
+  windowMs: AUTH_RATE_LIMIT.WINDOW_MS,
+  max: AUTH_RATE_LIMIT.MAX_ATTEMPTS,
   message: {
-    message: "Too many login attempts, please try again after 15 minutes",
+    error: "Too many login attempts, please try again after 15 minutes",
   },
   standardHeaders: true,
   legacyHeaders: false,
@@ -25,7 +31,7 @@ router.use("/signin", authLimiter);
 // Signup disabled
 router.post("/signup", async (_req, res) => {
   return res.status(403).json({
-    message: "Sign up is currently disabled",
+    error: "Sign up is currently disabled",
   });
 });
 
@@ -37,8 +43,8 @@ router.post("/signin", async (req, res) => {
 
   if (!validationResult.success) {
     return res.status(400).json({
-      message: "Invalid input",
-      errors: validationResult.error.issues,
+      error: "Invalid input",
+      details: validationResult.error.issues,
     });
   }
 
@@ -72,12 +78,12 @@ router.post("/signin", async (req, res) => {
       });
     } else {
       return res.status(401).json({
-        message: "Invalid Credentials",
+        error: "Invalid Credentials",
       });
     }
   } catch (error) {
     logger.error({ err: error, username }, "Signin error");
-    return res.status(500).json({ message: "Internal Server Error" });
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 });
 

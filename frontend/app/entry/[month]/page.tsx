@@ -7,47 +7,14 @@ import { signOut } from "@/lib/api";
 import { useMonthlyEntries } from "@/lib/swr-hooks";
 import { 
   getPendingMood, 
-  clearPendingMood,
 } from "@/lib/optimisticUpdates";
 import { clearOfflineData } from "@/lib/offlineStorage";
+import { MONTHS_FULL, DAYS_OF_WEEK, MOOD_COLORS, MOOD_EMOJIS } from "@/lib/constants";
 
 interface Entry {
   date: string;
   mood: string;
 }
-
-const monthsFull = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-];
-
-const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-
-const moodColors: Record<string, string> = {
-  excellent: "#00FF80",
-  good: "#B57EDC",
-  neutral: "#EF9B0F",
-  bad: "#FF9966",
-  terrible: "#FF0080",
-};
-
-const moodEmojis: Record<string, string> = {
-  excellent: "😄",
-  good: "😊",
-  neutral: "😐",
-  bad: "😞",
-  terrible: "😢",
-};
 
 export default function CalendarPage() {
   const router = useRouter();
@@ -266,7 +233,7 @@ export default function CalendarPage() {
 
           <div className="text-center">
             <h1 className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-xl sm:text-3xl lg:text-4xl font-bold text-transparent">
-              {monthsFull[currentMonth]} {currentYear}
+              {MONTHS_FULL[currentMonth]} {currentYear}
             </h1>
             <p className="mt-1 sm:mt-2 text-xs sm:text-base font-medium text-text-secondary">
               <span className="inline-block rounded-full bg-gradient-to-r from-accent/20 to-primary/20 px-2 sm:px-4 py-0.5 sm:py-1">
@@ -293,12 +260,12 @@ export default function CalendarPage() {
         <div className="card-surface overflow-hidden p-3 sm:p-6 lg:p-8">
           {/* Days of Week */}
           <div className="mb-3 sm:mb-6 grid grid-cols-7 gap-1 sm:gap-2">
-            {daysOfWeek.map((day, i) => (
+            {DAYS_OF_WEEK.map((day, i) => (
               <div
                 key={day}
                 className="text-center text-[10px] sm:text-xs font-bold uppercase tracking-widest"
                 style={{
-                  color: moodColors[Object.keys(moodColors)[i % 5]],
+                  color: MOOD_COLORS[Object.keys(MOOD_COLORS)[i % 5]],
                 }}
               >
                 {day}
@@ -338,7 +305,7 @@ export default function CalendarPage() {
                     } hover:scale-105 hover:shadow-lg`}
                     style={
                       mood
-                        ? { backgroundColor: `${moodColors[mood]}15` }
+                        ? { backgroundColor: `${MOOD_COLORS[mood]}15` }
                         : undefined
                     }
                   >
@@ -351,7 +318,7 @@ export default function CalendarPage() {
                           </span>
                           <div className="mt-0.5 sm:mt-1 flex items-center">
                             <span className="text-base sm:text-lg">
-                              {moodEmojis[mood]}
+                              {MOOD_EMOJIS[mood]}
                             </span>
                           </div>
                         </>
@@ -383,19 +350,19 @@ export default function CalendarPage() {
 
         {/* Legend */}
         <div className="mt-4 sm:mt-8 flex flex-wrap items-center justify-center gap-2 sm:gap-4 text-xs sm:text-sm font-medium">
-          {Object.entries(moodEmojis).map(([mood, emoji]) => (
+          {Object.entries(MOOD_EMOJIS).map(([mood, emoji]) => (
             <div
               key={mood}
               className="flex items-center gap-1 sm:gap-2 rounded-full border-2 px-2 sm:px-4 py-1 sm:py-2 shadow-sm"
               style={{
-                borderColor: moodColors[mood],
-                backgroundColor: `${moodColors[mood]}10`,
+                borderColor: MOOD_COLORS[mood],
+                backgroundColor: `${MOOD_COLORS[mood]}10`,
               }}
             >
               <span className="text-sm sm:text-base">{emoji}</span>
               <span
                 className="capitalize hidden sm:inline"
-                style={{ color: moodColors[mood] }}
+                style={{ color: MOOD_COLORS[mood] }}
               >
                 {mood}
               </span>

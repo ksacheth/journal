@@ -3,21 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ChevronLeft, ChevronRight, Calendar } from "lucide-react";
-
-const months = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-];
+import { MONTHS_FULL } from "@/lib/constants";
 
 export default function EntryPage() {
   const router = useRouter();
@@ -67,7 +53,7 @@ export default function EntryPage() {
 
         {/* Month Grid */}
         <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-3 lg:grid-cols-4">
-          {months.map((month, index) => {
+          {MONTHS_FULL.map((month, index) => {
             const isCurrentMonth =
               index === new Date().getMonth() &&
               currentYear === new Date().getFullYear();

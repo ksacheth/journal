@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { fetchClient } from "@/lib/api";
+import { signIn } from "@/lib/api";
 import { Sparkles } from "lucide-react";
 
 export default function SignIn() {
@@ -18,10 +18,7 @@ export default function SignIn() {
     setIsSubmitting(true);
 
     try {
-      await fetchClient("/api/signin", {
-        method: "POST",
-        body: JSON.stringify({ username, password }),
-      });
+      await signIn(username, password);
 
       router.push("/entry");
     } catch (error) {

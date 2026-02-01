@@ -6,6 +6,7 @@ import { authHandle } from "../middleware/auth";
 import { entrySchema } from "../validators";
 import { logger } from "../config";
 import { cache } from "../cache";
+import { parseDate, parseMonth, getDayRange, getMonthRange, createDateAtMidnight } from "../dateUtils";
 
 const router = express.Router();
 
@@ -46,31 +47,13 @@ router.get("/entries/:month", authHandle, async (req, res) => {
       return res.status(400).json({ error: "Invalid month parameter" });
     }
 
-    // Parse month parameter (assuming format: "YYYY-MM" or "MM")
-    let year: number;
-    let monthNum: number;
-
-    if (monthParam.includes("-")) {
-      // Format: "YYYY-MM"
-      const parts = monthParam.split("-");
-      const yearStr = parts[0];
-      const monthStr = parts[1];
-
-      if (!yearStr || !monthStr) {
-        return res.status(400).json({ error: "Invalid month format" });
-      }
-
-      year = parseInt(yearStr, 10);
-      monthNum = parseInt(monthStr, 10);
-    } else {
-      // Format: "MM" - use current year
-      year = new Date().getFullYear();
-      monthNum = parseInt(monthParam, 10);
+    // Parse month parameter using shared utility
+    const monthResult = parseMonth(monthParam);
+    if (!monthResult.success || !monthResult.data) {
+      return res.status(400).json({ error: monthResult.error ?? "Invalid month format" });
     }
 
-    if (isNaN(year) || isNaN(monthNum) || monthNum < 1 || monthNum > 12) {
-      return res.status(400).json({ error: "Invalid month format" });
-    }
+    const { year, month: monthNum } = monthResult.data;
 
     const pageParam = (req.query.page as string) || "1";
     const limitParam = (req.query.limit as string) || "31";
@@ -95,9 +78,8 @@ router.get("/entries/:month", authHandle, async (req, res) => {
       return res.json(cachedData);
     }
 
-    // Create date range for the month (local time)
-    const startDate = new Date(year, monthNum - 1, 1);
-    const endDate = new Date(year, monthNum, 0, 23, 59, 59, 999);
+    // Create date range for the month using shared utility
+    const { start: startDate, end: endDate } = getMonthRange(year, monthNum);
 
     const [entries, total] = await Promise.all([
       EntryModel.find({
@@ -159,38 +141,16 @@ router.get("/entry/:date", authHandle, async (req, res) => {
       return res.status(400).json({ error: "Invalid date parameter" });
     }
 
-    // Parse date parameter (format: "YYYY-MM-DD")
-    const [yearStr, monthStr, dayStr] = dateParam.split("-");
-    const parsedYear = Number.parseInt(yearStr ?? "", 10);
-    const parsedMonth = Number.parseInt(monthStr ?? "", 10);
-    const parsedDay = Number.parseInt(dayStr ?? "", 10);
-
-    if (
-      !Number.isFinite(parsedYear) ||
-      !Number.isFinite(parsedMonth) ||
-      !Number.isFinite(parsedDay)
-    ) {
-      return res.status(400).json({ error: "Invalid date format" });
+    // Parse date parameter using shared utility
+    const dateResult = parseDate(dateParam);
+    if (!dateResult.success || !dateResult.data) {
+      return res.status(400).json({ error: dateResult.error ?? "Invalid date format" });
     }
 
-    const daysInMonth = new Date(parsedYear, parsedMonth, 0).getDate();
-    if (
-      parsedMonth < 1 ||
-      parsedMonth > 12 ||
-      parsedDay < 1 ||
-      parsedDay > daysInMonth
-    ) {
-      return res.status(400).json({ error: "Invalid date format" });
-    }
+    const { year, month, day } = dateResult.data;
 
-    const date = new Date(parsedYear, parsedMonth - 1, parsedDay);
-
-    // Create range for the entire local day
-    const startOfDay = new Date(date);
-    startOfDay.setHours(0, 0, 0, 0);
-
-    const endOfDay = new Date(date);
-    endOfDay.setHours(23, 59, 59, 999);
+    // Create range for the entire local day using shared utility
+    const { start: startOfDay, end: endOfDay } = getDayRange(year, month, day);
 
     // Check cache first
     const cachedEntry = await cache.getCachedEntry(userId, dateParam);
@@ -254,33 +214,16 @@ router.post("/entry/:date", authHandle, async (req, res) => {
     const sanitizedText = sanitizeInput(text);
     const sanitizedTitle = sanitizeInput(title);
 
-    // Parse date parameter (format: "YYYY-MM-DD")
-    const [yearStr, monthStr, dayStr] = dateParam.split("-");
-    const parsedYear = Number.parseInt(yearStr ?? "", 10);
-    const parsedMonth = Number.parseInt(monthStr ?? "", 10);
-    const parsedDay = Number.parseInt(dayStr ?? "", 10);
-
-    if (
-      !Number.isFinite(parsedYear) ||
-      !Number.isFinite(parsedMonth) ||
-      !Number.isFinite(parsedDay)
-    ) {
-      return res.status(400).json({ error: "Invalid date format" });
+    // Parse date parameter using shared utility
+    const dateResult = parseDate(dateParam);
+    if (!dateResult.success || !dateResult.data) {
+      return res.status(400).json({ error: dateResult.error ?? "Invalid date format" });
     }
 
-    const daysInMonth = new Date(parsedYear, parsedMonth, 0).getDate();
-    if (
-      parsedMonth < 1 ||
-      parsedMonth > 12 ||
-      parsedDay < 1 ||
-      parsedDay > daysInMonth
-    ) {
-      return res.status(400).json({ error: "Invalid date format" });
-    }
+    const { year, month, day } = dateResult.data;
 
-    // Ensure it is local midnight
-    const entryDate = new Date(parsedYear, parsedMonth - 1, parsedDay);
-    entryDate.setHours(0, 0, 0, 0);
+    // Create date at local midnight using shared utility
+    const entryDate = createDateAtMidnight(year, month, day);
 
     // Create or update entry (upsert)
     const entry = await EntryModel.findOneAndUpdate(

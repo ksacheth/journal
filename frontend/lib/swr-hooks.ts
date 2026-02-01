@@ -1,5 +1,5 @@
 import useSWR, { SWRConfiguration, mutate as globalMutate } from 'swr';
-import { fetchClient } from './api';
+import { fetchClient, FetchClientOptions } from './api';
 import { 
   getMonthlyCache, 
   saveMonthlyCache, 
@@ -47,7 +47,7 @@ async function monthlyEntriesFetcher(
   try {
     // Try network first
     if (isOnline()) {
-      const data = await fetchClient(`/api/entries/${year}-${monthStr}`);
+      const data = await fetchClient<MonthlyEntriesResponse>(`/api/entries/${year}-${monthStr}`);
       
       // Cache the result for offline use
       await saveMonthlyCache(year, month, data.entries || []);
@@ -76,7 +76,7 @@ async function monthlyEntriesFetcher(
 async function entryFetcher(dateStr: string): Promise<Entry | null> {
   try {
     if (isOnline()) {
-      const data = await fetchClient(`/api/entry/${dateStr}`);
+      const data = await fetchClient<Entry>(`/api/entry/${dateStr}`);
       await saveEntryOffline(dateStr, data);
       return data;
     }
@@ -188,7 +188,7 @@ export async function saveEntry(
   await saveEntryOffline(dateStr, optimisticEntry);
   
   // Make the actual API request
-  const result = await fetchClient(`/api/entry/${dateStr}`, {
+  const result = await fetchClient<Entry>(`/api/entry/${dateStr}`, {
     method: 'POST',
     body: JSON.stringify(entryData),
   });

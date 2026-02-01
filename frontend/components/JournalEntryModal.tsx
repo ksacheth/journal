@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { X, Hash, Plus, Check, Sparkles, GripVertical } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { X, Hash, Plus, Check, Sparkles, GripVertical, Pencil } from "lucide-react";
 import { sanitizeInput } from "@/lib/sanitize";
+import { MOODS, MONTHS_FULL, DAYS_OF_WEEK_FULL, type MoodType } from "@/lib/constants";
 
 interface Todo {
   id: string;
@@ -30,13 +31,13 @@ interface JournalEntryModalProps {
   errorMessage?: string;
 }
 
-const moods = [
-  { emoji: "😢", value: "terrible", label: "Very sad", color: "#ef4444" }, // Red
-  { emoji: "😞", value: "bad", label: "Sad", color: "#f97316" }, // Orange
-  { emoji: "😐", value: "neutral", label: "Neutral", color: "#64748b" }, // Slate
-  { emoji: "😊", value: "good", label: "Good", color: "#3b82f6" }, // Blue
-  { emoji: "😄", value: "excellent", label: "Great", color: "#10b981" }, // Emerald
-];
+// Convert MOODS to array format for UI
+const moods = Object.entries(MOODS).map(([value, data]) => ({
+  emoji: data.emoji,
+  value: value as MoodType,
+  label: data.label,
+  color: data.color,
+}));
 
 export default function JournalEntryModal({
   isOpen,
@@ -59,6 +60,9 @@ export default function JournalEntryModal({
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
   const [draggedTodoId, setDraggedTodoId] = useState<string | null>(null);
   const [dragOverTodoId, setDragOverTodoId] = useState<string | null>(null);
+  const [editingTodoId, setEditingTodoId] = useState<string | null>(null);
+  const [editingTodoText, setEditingTodoText] = useState<string>("");
+  const editInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -69,31 +73,8 @@ export default function JournalEntryModal({
   }, []);
 
   const formatDate = (date: Date, time: Date) => {
-    const days = [
-      "Sunday",
-      "Monday",
-      "Tuesday",
-      "Wednesday",
-      "Thursday",
-      "Friday",
-      "Saturday",
-    ];
-    const months = [
-      "January",
-      "February",
-      "March",
-      "April",
-      "May",
-      "June",
-      "July",
-      "August",
-      "September",
-      "October",
-      "November",
-      "December",
-    ];
-    const dayOfWeek = days[date.getDay()];
-    const month = months[date.getMonth()];
+    const dayOfWeek = DAYS_OF_WEEK_FULL[date.getDay()];
+    const month = MONTHS_FULL[date.getMonth()];
     const day = date.getDate();
     const year = date.getFullYear();
     const hours = time.getHours();
@@ -199,6 +180,46 @@ export default function JournalEntryModal({
   const handleDragEnd = () => {
     setDraggedTodoId(null);
     setDragOverTodoId(null);
+  };
+
+  // Edit todo handlers
+  const handleStartEditTodo = (todo: Todo) => {
+    setEditingTodoId(todo.id);
+    setEditingTodoText(todo.text);
+    // Focus the input after state update
+    setTimeout(() => {
+      editInputRef.current?.focus();
+      editInputRef.current?.select();
+    }, 0);
+  };
+
+  const handleSaveEditTodo = () => {
+    if (editingTodoId && editingTodoText.trim()) {
+      setTodos(
+        todos.map((todo) =>
+          todo.id === editingTodoId
+            ? { ...todo, text: editingTodoText.trim() }
+            : todo
+        )
+      );
+    }
+    setEditingTodoId(null);
+    setEditingTodoText("");
+  };
+
+  const handleCancelEditTodo = () => {
+    setEditingTodoId(null);
+    setEditingTodoText("");
+  };
+
+  const handleEditTodoKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSaveEditTodo();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      handleCancelEditTodo();
+    }
   };
 
   const handleSave = async () => {
@@ -321,24 +342,28 @@ export default function JournalEntryModal({
               {todos.map((todo) => (
                 <div
                   key={todo.id}
-                  draggable
+                  draggable={editingTodoId !== todo.id}
                   onDragStart={(e) => handleDragStart(e, todo.id)}
                   onDragOver={(e) => handleDragOver(e, todo.id)}
                   onDragLeave={handleDragLeave}
                   onDrop={(e) => handleDrop(e, todo.id)}
                   onDragEnd={handleDragEnd}
-                  className={`smooth-transition flex items-center gap-2 sm:gap-3 rounded-xl border bg-surface p-3 sm:p-4 cursor-move ${
-                    draggedTodoId === todo.id
-                      ? "opacity-50 border-dashed border-primary"
-                      : dragOverTodoId === todo.id
-                        ? "border-primary ring-2 ring-primary/20 shadow-lg scale-[1.02]"
-                        : "border-border hover:border-accent/40 hover:shadow-sm"
+                  className={`smooth-transition flex items-center gap-2 sm:gap-3 rounded-xl border bg-surface p-3 sm:p-4 ${
+                    editingTodoId === todo.id
+                      ? "border-primary ring-2 ring-primary/20"
+                      : draggedTodoId === todo.id
+                        ? "opacity-50 border-dashed border-primary cursor-move"
+                        : dragOverTodoId === todo.id
+                          ? "border-primary ring-2 ring-primary/20 shadow-lg scale-[1.02] cursor-move"
+                          : "border-border hover:border-accent/40 hover:shadow-sm cursor-move"
                   }`}
                 >
                   {/* Drag handle */}
-                  <div className="text-text-tertiary cursor-grab active:cursor-grabbing">
-                    <GripVertical className="h-5 w-5" />
-                  </div>
+                  {editingTodoId !== todo.id && (
+                    <div className="text-text-tertiary cursor-grab active:cursor-grabbing">
+                      <GripVertical className="h-5 w-5" />
+                    </div>
+                  )}
                   <button
                     type="button"
                     onClick={() => handleToggleTodo(todo.id)}
@@ -350,21 +375,72 @@ export default function JournalEntryModal({
                   >
                     {todo.completed && <Check className="h-3.5 w-3.5" />}
                   </button>
-                  <span
-                    className={`flex-1 text-sm font-medium ${
-                      todo.completed
-                        ? "text-text-tertiary line-through"
-                        : "text-text-primary"
-                    }`}
-                  >
-                    {todo.text}
-                  </span>
-                  <button
-                    onClick={() => handleRemoveTodo(todo.id)}
-                    className="smooth-transition text-text-tertiary hover:scale-110 hover:text-error"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
+                  
+                  {/* Todo text or edit input */}
+                  {editingTodoId === todo.id ? (
+                    <input
+                      ref={editInputRef}
+                      type="text"
+                      value={editingTodoText}
+                      onChange={(e) => setEditingTodoText(e.target.value)}
+                      onKeyDown={handleEditTodoKeyDown}
+                      onBlur={handleSaveEditTodo}
+                      className="flex-1 rounded-lg border border-primary bg-white px-2 py-1 text-sm font-medium text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      placeholder="Edit task..."
+                    />
+                  ) : (
+                    <span
+                      onClick={() => handleStartEditTodo(todo)}
+                      className={`flex-1 text-sm font-medium cursor-text hover:bg-primary/5 rounded px-1 py-0.5 -mx-1 transition-colors ${
+                        todo.completed
+                          ? "text-text-tertiary line-through"
+                          : "text-text-primary"
+                      }`}
+                      title="Click to edit"
+                    >
+                      {todo.text}
+                    </span>
+                  )}
+                  
+                  {/* Edit and delete buttons */}
+                  {editingTodoId !== todo.id && (
+                    <>
+                      <button
+                        onClick={() => handleStartEditTodo(todo)}
+                        className="smooth-transition text-text-tertiary hover:scale-110 hover:text-primary"
+                        title="Edit task"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleRemoveTodo(todo.id)}
+                        className="smooth-transition text-text-tertiary hover:scale-110 hover:text-error"
+                        title="Delete task"
+                      >
+                        <X className="h-5 w-5" />
+                      </button>
+                    </>
+                  )}
+                  
+                  {/* Save/Cancel buttons when editing */}
+                  {editingTodoId === todo.id && (
+                    <div className="flex gap-1">
+                      <button
+                        onClick={handleSaveEditTodo}
+                        className="smooth-transition flex h-7 w-7 items-center justify-center rounded-lg bg-success text-white hover:scale-110"
+                        title="Save (Enter)"
+                      >
+                        <Check className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={handleCancelEditTodo}
+                        className="smooth-transition flex h-7 w-7 items-center justify-center rounded-lg bg-gray-200 text-gray-600 hover:scale-110 hover:bg-gray-300"
+                        title="Cancel (Escape)"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
