@@ -1,6 +1,4 @@
 import express from "express";
-import { JSDOM } from "jsdom";
-import DOMPurify from "dompurify";
 import { EntryModel } from "../models/Entry";
 import { authHandle } from "../middleware/auth";
 import { entrySchema } from "../validators";
@@ -9,30 +7,6 @@ import { cache } from "../cache";
 import { parseDate, parseMonth, getDayRange, getMonthRange, createDateAtMidnight } from "../dateUtils";
 
 const router = express.Router();
-
-// Initialize DOMPurify with jsdom for server-side sanitization
-const window = new JSDOM("").window;
-const purify = DOMPurify(window);
-
-/**
- * Sanitize user input to prevent XSS attacks
- * Uses DOMPurify to robustly parse and sanitize HTML input
- * Removes all HTML tags and returns plain text content
- */
-function sanitizeInput(input: string | undefined): string | undefined {
-  if (!input) return undefined;
-  
-  // Use DOMPurify to sanitize HTML
-  // This handles malformed/unclosed tags properly
-  // ALLOWED_TAGS: [] means no HTML tags are allowed - treated as plain text
-  const sanitized = purify.sanitize(input, {
-    ALLOWED_TAGS: [],
-    ALLOWED_ATTR: [],
-    KEEP_CONTENT: true,
-  });
-  
-  return sanitized;
-}
 
 router.get("/entries/:month", authHandle, async (req, res) => {
   try {
@@ -210,10 +184,6 @@ router.post("/entry/:date", authHandle, async (req, res) => {
 
     const { title, text, mood, todos, tags } = validationResult.data;
 
-    // Sanitize text input to prevent XSS
-    const sanitizedText = sanitizeInput(text);
-    const sanitizedTitle = sanitizeInput(title);
-
     // Parse date parameter using shared utility
     const dateResult = parseDate(dateParam);
     if (!dateResult.success || !dateResult.data) {
@@ -234,8 +204,8 @@ router.post("/entry/:date", authHandle, async (req, res) => {
       {
         userId: userId,
         date: entryDate,
-        title: sanitizedTitle,
-        text: sanitizedText,
+        title: title,
+        text: text,
         mood: mood,
         todos: todos || undefined,
         tags: tags || undefined,

@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from "react";
 import { X, Hash, Plus, Check, Sparkles, GripVertical, Pencil } from "lucide-react";
-import { sanitizeInput } from "@/lib/sanitize";
 import { MOODS, MONTHS_FULL, DAYS_OF_WEEK_FULL, type MoodType } from "@/lib/constants";
 
 interface Todo {
@@ -225,13 +224,10 @@ export default function JournalEntryModal({
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      // Sanitize text to prevent XSS attacks
-      const sanitizedText = sanitizeInput(text);
-      
       await onSave({
         date: currentDate,
         mood: selectedMood,
-        text: sanitizedText,
+        text: text,
         tags: tags,
         todos: todos,
       });

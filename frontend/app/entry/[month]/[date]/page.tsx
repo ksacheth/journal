@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import JournalEntryModal from "@/components/JournalEntryModal";
 import { useEntry, saveEntry } from "@/lib/swr-hooks";
+import { withAuth } from "@/lib/auth";
 import { storePendingMood } from "@/lib/optimisticUpdates";
 
 interface Todo {
@@ -68,7 +69,7 @@ function useParsedDate(monthParam: string, dateParam: string) {
   }, [monthParam, dateParam]);
 }
 
-export default function EntryPage() {
+function EntryPage() {
   const router = useRouter();
   const params = useParams();
   const monthParam = params.month as string;
@@ -168,3 +169,5 @@ export default function EntryPage() {
     </div>
   );
 }
+
+export default withAuth(EntryPage);

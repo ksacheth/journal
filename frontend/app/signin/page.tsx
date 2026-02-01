@@ -3,9 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "@/lib/api";
+import { withoutAuth } from "@/lib/auth";
 import { Sparkles } from "lucide-react";
 
-export default function SignIn() {
+function SignIn() {
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -104,3 +105,5 @@ export default function SignIn() {
     </div>
   );
 }
+
+export default withoutAuth(SignIn);

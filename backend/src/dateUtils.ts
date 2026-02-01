@@ -100,28 +100,29 @@ export function parseMonth(monthParam: string): MonthParseResult {
 }
 
 /**
- * Create a Date object for the start of a given day (midnight local time)
+ * Create a Date object for the start of a given day (midnight UTC)
+ * Uses UTC to ensure consistent date storage in MongoDB regardless of server timezone
  */
 export function createDateAtMidnight(year: number, month: number, day: number): Date {
-  const date = new Date(year, month - 1, day);
-  date.setHours(0, 0, 0, 0);
-  return date;
+  return new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
 }
 
 /**
- * Get the start and end of a day for range queries
+ * Get the start and end of a day for range queries (UTC)
+ * Uses UTC dates to match MongoDB's storage format
  */
 export function getDayRange(year: number, month: number, day: number): { start: Date; end: Date } {
-  const start = new Date(year, month - 1, day, 0, 0, 0, 0);
-  const end = new Date(year, month - 1, day, 23, 59, 59, 999);
+  const start = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+  const end = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999));
   return { start, end };
 }
 
 /**
- * Get the start and end of a month for range queries
+ * Get the start and end of a month for range queries (UTC)
+ * Uses UTC dates to match MongoDB's storage format
  */
 export function getMonthRange(year: number, month: number): { start: Date; end: Date } {
-  const start = new Date(year, month - 1, 1);
-  const end = new Date(year, month, 0, 23, 59, 59, 999);
+  const start = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0, 0));
+  const end = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
   return { start, end };
 }

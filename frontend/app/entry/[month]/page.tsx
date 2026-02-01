@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { ChevronLeft, ChevronRight, CalendarDays, LogOut } from "lucide-react";
 import { signOut } from "@/lib/api";
+import { withAuth } from "@/lib/auth";
 import { useMonthlyEntries } from "@/lib/swr-hooks";
 import { 
   getPendingMood, 
@@ -16,7 +17,7 @@ interface Entry {
   mood: string;
 }
 
-export default function CalendarPage() {
+function CalendarPage() {
   const router = useRouter();
   const params = useParams();
   const monthParam = params.month as string;
@@ -373,3 +374,5 @@ export default function CalendarPage() {
     </div>
   );
 }
+
+export default withAuth(CalendarPage);

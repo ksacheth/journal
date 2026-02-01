@@ -4,8 +4,9 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 import { MONTHS_FULL } from "@/lib/constants";
+import { withAuth } from "@/lib/auth";
 
-export default function EntryPage() {
+function EntryPage() {
   const router = useRouter();
   const [currentYear, setCurrentYear] = useState<number>(
     new Date().getFullYear(),
@@ -110,3 +111,5 @@ export default function EntryPage() {
     </div>
   );
 }
+
+export default withAuth(EntryPage);
