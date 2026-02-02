@@ -94,7 +94,7 @@ const publicPath = path.join(__dirname, "../public");
 app.use(express.static(publicPath));
 
 // Serve index.html for all non-API routes (SPA support)
-app.get("*", (req, res) => {
+app.get(/^\/(?!api).*/, (req, res) => {
   res.sendFile(path.join(publicPath, "index.html"));
 });
 

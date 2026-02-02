@@ -48,7 +48,7 @@ router.get("/entries/:month", authHandle, async (req, res) => {
 
     // Check cache first
     const cachedData = await cache.getCachedMonthEntries<{
-      entries: Array<{ date: Date; mood: string }>;
+      entries: Array<{ date: string; mood: string }>;
       pagination: { page: number; limit: number; total: number };
     }>(userId, year, monthNum, page, limit);
 
@@ -89,7 +89,11 @@ router.get("/entries/:month", authHandle, async (req, res) => {
       entries: entries.map((entry) => {
         // entry.date is always a Date per Entry schema
         const dateValue = entry.date as Date;
-        const dateStr = dateValue.toISOString().split("T")[0];
+        // Build local date string to avoid UTC shifts
+        const year = dateValue.getFullYear();
+        const month = String(dateValue.getMonth() + 1).padStart(2, "0");
+        const day = String(dateValue.getDate()).padStart(2, "0");
+        const dateStr = `${year}-${month}-${day}`;
         return {
           date: dateStr,
           mood: entry.mood,

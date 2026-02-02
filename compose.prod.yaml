@@ -2,9 +2,10 @@ name: journal-prod
 
 services:
   traefik:
-    image: traefik:latest
+    image: traefik:v3.3.6
     restart: always
-    user: root
+    user: "65532:65532"
+    read_only: true
     command:
       - "--api.insecure=false"
       - "--ping=true"
@@ -15,7 +16,7 @@ services:
     ports:
       - "80:80"
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - journal-network
     healthcheck:
