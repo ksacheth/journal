@@ -1,12 +1,11 @@
-# Use Node.js Alpine for building (more reliable on CI)
-FROM node:22-alpine AS base
+# Use Bun Alpine for building
+FROM oven/bun:alpine AS base
 
 # Install dependencies only when needed
 FROM base AS deps
 WORKDIR /app
 COPY package.json bun.lock ./
-# Use npm for installing dependencies
-RUN npm install
+RUN bun install
 
 # Rebuild the source code only when needed
 FROM base AS builder
@@ -21,11 +20,11 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 # Disable telemetry during the build
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Build the application using npm
-RUN npm run build
+# Build the application using bun
+RUN bun run build
 
-# Production image - use Node.js Alpine for running
-FROM node:22-alpine AS runner
+# Production image - use Bun Alpine for running
+FROM oven/bun:alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
@@ -52,4 +51,4 @@ USER nextjs
 EXPOSE 3000
 
 # server.js is created by next build from the standalone output
-CMD ["node", "server.js"]
+CMD ["bun", "server.js"]

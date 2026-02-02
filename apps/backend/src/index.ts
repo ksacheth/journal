@@ -1,6 +1,7 @@
 import express, { type ErrorRequestHandler } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import path from "path";
 import { connectDb, isDbHealthy } from "./db";
 import authRoutes from "./routes/auth";
 import entryRoutes from "./routes/entry";
@@ -44,13 +45,25 @@ const corsOrigins = (process.env.CORS_ORIGIN ?? "http://localhost:3000")
   .map((origin) => origin.trim())
   .filter(Boolean);
 
+logger.info({ corsOrigins }, "CORS origins configured");
+
 app.use(
   cors({
-    origin: corsOrigins,
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, curl, Postman)
+      if (!origin) return callback(null, true);
+
+      if (corsOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        logger.warn({ origin, allowed: corsOrigins }, "CORS origin blocked");
+        callback(new Error(`Origin ${origin} not allowed by CORS`));
+      }
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
-  })
+  }),
 );
 
 connectDb().catch((error) => {
@@ -76,6 +89,15 @@ app.get("/api/health", async (req, res) => {
 app.use("/api", authRoutes);
 app.use("/api", entryRoutes);
 
+// Serve static files from the built frontend
+const publicPath = path.join(__dirname, "../public");
+app.use(express.static(publicPath));
+
+// Serve index.html for all non-API routes (SPA support)
+app.get("*", (req, res) => {
+  res.sendFile(path.join(publicPath, "index.html"));
+});
+
 const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
   logger.error(
     {
@@ -83,7 +105,7 @@ const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
       method: req.method,
       path: req.path,
     },
-    "Unhandled server error"
+    "Unhandled server error",
   );
   return res.status(500).json({ error: "Internal server error" });
 };
