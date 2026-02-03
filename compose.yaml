@@ -1,26 +1,22 @@
-# Note: Before running docker compose up, export the Docker GID:
-# export DOCKER_GID="$(getent group docker | cut -d: -f3)"
+# Static configuration for local development on macOS
+# No Docker socket required - uses file provider instead
 name: journal-prod
 
 services:
   traefik:
     image: traefik:v3.3.6
     restart: always
-    user: "65532:65532"
-    group_add:
-      - "${DOCKER_GID}"
-    read_only: true
     command:
       - "--api.insecure=false"
       - "--ping=true"
-      - "--providers.docker=true"
-      - "--providers.docker.endpoint=unix:///var/run/docker.sock"
-      - "--providers.docker.exposedbydefault=false"
+      - "--providers.file=true"
+      - "--providers.file.filename=/etc/traefik/dynamic.yml"
+      - "--providers.file.watch=true"
       - "--entrypoints.web.address=:80"
     ports:
       - "80:80"
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik.dynamic.yml:/etc/traefik/dynamic.yml:ro
     networks:
       - journal-network
     healthcheck:
@@ -52,11 +48,6 @@ services:
     restart: always
     expose:
       - "3001"
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.backend.rule=Host(`journal.sachethkoushal.tech`) && PathPrefix(`/api`)"
-      - "traefik.http.routers.backend.entrypoints=web"
-      - "traefik.http.services.backend.loadbalancer.server.port=3001"
     environment:
       - NODE_ENV=production
       - MONGODB_URL=${MONGODB_URL}
@@ -67,8 +58,6 @@ services:
       - CACHE_ENABLED=false
     depends_on:
       redis:
-        condition: service_healthy
-      traefik:
         condition: service_healthy
     networks:
       - journal-network
@@ -89,17 +78,11 @@ services:
     restart: always
     expose:
       - "3000"
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.frontend.rule=Host(`journal.sachethkoushal.tech`)"
-      - "traefik.http.routers.frontend.entrypoints=web"
-      - "traefik.http.services.frontend.loadbalancer.server.port=3000"
     environment:
       - NODE_ENV=production
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
     depends_on:
       - backend
-      - traefik
     networks:
       - journal-network
 
