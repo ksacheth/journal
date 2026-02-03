@@ -1,5 +1,3 @@
-# Static configuration for local development on macOS
-# No Docker socket required - uses file provider instead
 name: journal-prod
 
 services:
@@ -9,14 +7,13 @@ services:
     command:
       - "--api.insecure=false"
       - "--ping=true"
-      - "--providers.file=true"
-      - "--providers.file.filename=/etc/traefik/dynamic.yml"
-      - "--providers.file.watch=true"
       - "--entrypoints.web.address=:80"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
     ports:
       - "80:80"
     volumes:
-      - ./traefik.dynamic.yml:/etc/traefik/dynamic.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - journal-network
     healthcheck:
@@ -27,7 +24,7 @@ services:
       start_period: 10s
 
   redis:
-    image: redis:8.2-alpine
+    image: redis:7-alpine
     restart: always
     networks:
       - journal-network
@@ -43,8 +40,10 @@ services:
 
   backend:
     build:
-      context: ./apps/backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: apps/backend/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
     restart: always
     expose:
       - "3001"
@@ -61,6 +60,11 @@ services:
         condition: service_healthy
     networks:
       - journal-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend.rule=Host(`journal.sachethkoushal.tech`) || Host(`localhost`)"
+      - "traefik.http.routers.backend.entrypoints=web"
+      - "traefik.http.services.backend.loadbalancer.server.port=3001"
     healthcheck:
       test:
         ["CMD", "wget", "--spider", "-q", "http://localhost:3001/api/health"]
@@ -68,23 +72,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
-
-  frontend:
-    build:
-      context: ./apps/frontend
-      dockerfile: Dockerfile
-      args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
-    restart: always
-    expose:
-      - "3000"
-    environment:
-      - NODE_ENV=production
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-    depends_on:
-      - backend
-    networks:
-      - journal-network
 
 networks:
   journal-network:

@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 import { MONTHS_FULL } from "@/lib/constants";
 import { withAuth } from "@/lib/auth";
 
-function EntryPage() {
+function MonthSelectorPage() {
   const router = useRouter();
   const [currentYear, setCurrentYear] = useState<number>(
     new Date().getFullYear(),
@@ -63,7 +63,7 @@ function EntryPage() {
               <button
                 key={index}
                 onClick={() => handleMonthClick(index)}
-                className={`smooth-transition group relative overflow-hidden rounded-xl border p-4 sm:p-8 text-center shadow-sm aspect-[3/2] sm:aspect-[4/3] ${
+                className={`smooth-transition group relative overflow-hidden rounded-xl border p-4 sm:p-8 text-center shadow-sm aspect-3/2 sm:aspect-4/3 ${
                   isCurrentMonth
                     ? "border-primary/50 bg-primary/5 ring-2 ring-primary/30 shadow-primary/20"
                     : "border-border bg-surface hover:border-primary/50 hover:shadow-md"
@@ -112,4 +112,4 @@ function EntryPage() {
   );
 }
 
-export default withAuth(EntryPage);
+export default withAuth(MonthSelectorPage);

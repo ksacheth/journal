@@ -50,12 +50,20 @@ function useParsedDate(monthParam: string, dateParam: string) {
       month < 0 ||
       month > 11
     ) {
-      return { entryDate: null, dateStr: null, validationError: "Invalid date." };
+      return {
+        entryDate: null,
+        dateStr: null,
+        validationError: "Invalid date.",
+      };
     }
 
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     if (day < 1 || day > daysInMonth) {
-      return { entryDate: null, dateStr: null, validationError: "Invalid date." };
+      return {
+        entryDate: null,
+        dateStr: null,
+        validationError: "Invalid date.",
+      };
     }
 
     const entryDate = new Date(year, month, day);
@@ -72,10 +80,14 @@ function useParsedDate(monthParam: string, dateParam: string) {
 function EntryPage() {
   const router = useRouter();
   const params = useParams();
-  const monthParam = params.month as string;
-  const dateParam = params.date as string;
+  const slug = params.slug as string[] | undefined;
+  const monthParam = slug?.[0] || "";
+  const dateParam = slug?.[1] || "";
 
-  const { entryDate, dateStr, validationError } = useParsedDate(monthParam, dateParam);
+  const { entryDate, dateStr, validationError } = useParsedDate(
+    monthParam,
+    dateParam,
+  );
   const [saveError, setSaveError] = useState<string | null>(null);
 
   // Use SWR hook to fetch entry data
@@ -158,12 +170,16 @@ function EntryPage() {
         onClose={handleClose}
         onSave={handleSave}
         initialDate={entryDate}
-        initialEntry={entry ? {
-          mood: entry.mood,
-          text: entry.text || "",
-          tags: entry.tags || [],
-          todos: entry.todos || [],
-        } : undefined}
+        initialEntry={
+          entry
+            ? {
+                mood: entry.mood,
+                text: entry.text || "",
+                tags: entry.tags || [],
+                todos: entry.todos || [],
+              }
+            : undefined
+        }
         errorMessage={error ?? undefined}
       />
     </div>

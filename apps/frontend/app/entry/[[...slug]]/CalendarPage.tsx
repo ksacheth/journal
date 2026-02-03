@@ -6,11 +6,14 @@ import { ChevronLeft, ChevronRight, CalendarDays, LogOut } from "lucide-react";
 import { signOut } from "@/lib/api";
 import { withAuth } from "@/lib/auth";
 import { useMonthlyEntries } from "@/lib/swr-hooks";
-import { 
-  getPendingMood, 
-} from "@/lib/optimisticUpdates";
+import { getPendingMood } from "@/lib/optimisticUpdates";
 import { clearOfflineData } from "@/lib/offlineStorage";
-import { MONTHS_FULL, DAYS_OF_WEEK, MOOD_COLORS, MOOD_EMOJIS } from "@/lib/constants";
+import {
+  MONTHS_FULL,
+  DAYS_OF_WEEK,
+  MOOD_COLORS,
+  MOOD_EMOJIS,
+} from "@/lib/constants";
 
 interface Entry {
   date: string;
@@ -20,7 +23,7 @@ interface Entry {
 function CalendarPage() {
   const router = useRouter();
   const params = useParams();
-  const monthParam = params.month as string;
+  const monthParam = (params.slug as string[] | undefined)?.[0];
 
   const parseMonthParam = (value?: string | null) => {
     const today = new Date();
@@ -63,11 +66,11 @@ function CalendarPage() {
   const initial = getInitialMonth();
   const [currentMonth, setCurrentMonth] = useState<number>(initial.month);
   const [currentYear, setCurrentYear] = useState<number>(initial.year);
-  
+
   // Use SWR for data fetching with automatic caching and revalidation
-  const { 
-    entries: serverEntries, 
-    isLoading, 
+  const {
+    entries: serverEntries,
+    isLoading,
     error: swrError,
     mutate,
   } = useMonthlyEntries(currentYear, currentMonth);
@@ -84,7 +87,7 @@ function CalendarPage() {
       for (let day = 1; day <= daysInMonth; day++) {
         const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
         const pendingMood = getPendingMood(dateStr);
-        
+
         if (pendingMood) {
           pending.push({ date: dateStr, mood: pendingMood });
         }
@@ -113,17 +116,17 @@ function CalendarPage() {
   // Merge server entries with optimistic entries
   const entries = useMemo(() => {
     const merged = new Map<string, Entry>();
-    
+
     // Add server entries first
     serverEntries.forEach((entry) => {
       merged.set(entry.date, entry);
     });
-    
+
     // Override with optimistic updates
     optimisticEntries.forEach((entry) => {
       merged.set(entry.date, entry);
     });
-    
+
     return Array.from(merged.values());
   }, [serverEntries, optimisticEntries]);
 
