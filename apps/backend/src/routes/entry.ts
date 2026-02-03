@@ -4,7 +4,13 @@ import { authHandle } from "../middleware/auth";
 import { entrySchema } from "../validators";
 import { logger } from "../config";
 import { cache } from "../cache";
-import { parseDate, parseMonth, getDayRange, getMonthRange, createDateAtMidnight } from "../dateUtils";
+import {
+  parseDate,
+  parseMonth,
+  getDayRange,
+  getMonthRange,
+  createDateAtMidnight,
+} from "../dateUtils";
 
 const router = express.Router();
 
@@ -24,7 +30,9 @@ router.get("/entries/:month", authHandle, async (req, res) => {
     // Parse month parameter using shared utility
     const monthResult = parseMonth(monthParam);
     if (!monthResult.success || !monthResult.data) {
-      return res.status(400).json({ error: monthResult.error ?? "Invalid month format" });
+      return res
+        .status(400)
+        .json({ error: monthResult.error ?? "Invalid month format" });
     }
 
     const { year, month: monthNum } = monthResult.data;
@@ -40,7 +48,7 @@ router.get("/entries/:month", authHandle, async (req, res) => {
 
     // Check cache first
     const cachedData = await cache.getCachedMonthEntries<{
-      entries: Array<{ date: Date; mood: string }>;
+      entries: Array<{ date: string; mood: string }>;
       pagination: { page: number; limit: number; total: number };
     }>(userId, year, monthNum, page, limit);
 
@@ -78,10 +86,19 @@ router.get("/entries/:month", authHandle, async (req, res) => {
     ]);
 
     const responseData = {
-      entries: entries.map((entry) => ({
-        date: entry.date,
-        mood: entry.mood,
-      })),
+      entries: entries.map((entry) => {
+        // entry.date is always a Date per Entry schema
+        const dateValue = entry.date as Date;
+        // Build local date string to avoid UTC shifts
+        const year = dateValue.getFullYear();
+        const month = String(dateValue.getMonth() + 1).padStart(2, "0");
+        const day = String(dateValue.getDate()).padStart(2, "0");
+        const dateStr = `${year}-${month}-${day}`;
+        return {
+          date: dateStr,
+          mood: entry.mood,
+        };
+      }),
       pagination: {
         page,
         limit,
@@ -90,7 +107,14 @@ router.get("/entries/:month", authHandle, async (req, res) => {
     };
 
     // Cache the result
-    await cache.cacheMonthEntries(userId, year, monthNum, page, limit, responseData);
+    await cache.cacheMonthEntries(
+      userId,
+      year,
+      monthNum,
+      page,
+      limit,
+      responseData,
+    );
 
     return res.json(responseData);
   } catch (error) {
@@ -118,7 +142,9 @@ router.get("/entry/:date", authHandle, async (req, res) => {
     // Parse date parameter using shared utility
     const dateResult = parseDate(dateParam);
     if (!dateResult.success || !dateResult.data) {
-      return res.status(400).json({ error: dateResult.error ?? "Invalid date format" });
+      return res
+        .status(400)
+        .json({ error: dateResult.error ?? "Invalid date format" });
     }
 
     const { year, month, day } = dateResult.data;
@@ -187,7 +213,9 @@ router.post("/entry/:date", authHandle, async (req, res) => {
     // Parse date parameter using shared utility
     const dateResult = parseDate(dateParam);
     if (!dateResult.success || !dateResult.data) {
-      return res.status(400).json({ error: dateResult.error ?? "Invalid date format" });
+      return res
+        .status(400)
+        .json({ error: dateResult.error ?? "Invalid date format" });
     }
 
     const { year, month, day } = dateResult.data;

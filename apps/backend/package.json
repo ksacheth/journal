@@ -3,6 +3,12 @@
   "module": "src/index.ts",
   "type": "module",
   "private": true,
+  "scripts": {
+    "dev": "bun --watch src/index.ts",
+    "build": "echo 'No build step needed for Bun'",
+    "start": "bun src/index.ts",
+    "lint": "echo 'No lint configured'"
+  },
   "devDependencies": {
     "@types/bcryptjs": "^3.0.0",
     "@types/bun": "latest",

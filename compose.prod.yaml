@@ -1,27 +1,37 @@
+# Note: Before running docker compose up, export the Docker GID:
+# export DOCKER_GID="$(getent group docker | cut -d: -f3)"
 name: journal-prod
 
 services:
-  nginx:
-    image: nginx:alpine
+  traefik:
+    image: traefik:v3.3.6
     restart: always
+    user: "65532:65532"
+    group_add:
+      - "${DOCKER_GID}"
+    read_only: true
+    command:
+      - "--api.insecure=false"
+      - "--ping=true"
+      - "--providers.docker=true"
+      - "--providers.docker.endpoint=unix:///var/run/docker.sock"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
     ports:
       - "80:80"
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-    depends_on:
-      - frontend
-      - backend
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - journal-network
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost/api/health"]
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
       interval: 30s
-      timeout: 10s
+      timeout: 5s
       retries: 3
       start_period: 10s
 
   redis:
-    image: redis:7-alpine
+    image: redis:8.2-alpine
     restart: always
     networks:
       - journal-network
@@ -37,21 +47,28 @@ services:
 
   backend:
     build:
-      context: ./backend
+      context: ./apps/backend
       dockerfile: Dockerfile
     restart: always
     expose:
       - "3001"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend.rule=Host(`journal.sachethkoushal.tech`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.backend.entrypoints=web"
+      - "traefik.http.services.backend.loadbalancer.server.port=3001"
     environment:
       - NODE_ENV=production
       - MONGODB_URL=${MONGODB_URL}
       - JWT_SECRET=${JWT_SECRET}
       - PORT=3001
-      - CORS_ORIGIN=${CORS_ORIGIN:-https://your-production-domain.com}
+      - CORS_ORIGIN=${CORS_ORIGIN}
       - REDIS_URL=redis://redis:6379
-      - CACHE_ENABLED=true
+      - CACHE_ENABLED=false
     depends_on:
       redis:
+        condition: service_healthy
+      traefik:
         condition: service_healthy
     networks:
       - journal-network
@@ -65,18 +82,24 @@ services:
 
   frontend:
     build:
-      context: ./frontend
+      context: ./apps/frontend
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
     restart: always
     expose:
       - "3000"
-    environment: 
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`journal.sachethkoushal.tech`)"
+      - "traefik.http.routers.frontend.entrypoints=web"
+      - "traefik.http.services.frontend.loadbalancer.server.port=3000"
+    environment:
       - NODE_ENV=production
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
     depends_on:
       - backend
+      - traefik
     networks:
       - journal-network
 
