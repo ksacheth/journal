@@ -57,7 +57,7 @@ app.use(
         callback(null, true);
       } else {
         logger.warn({ origin, allowed: corsOrigins }, "CORS origin blocked");
-        callback(new Error(`Origin ${origin} not allowed by CORS`));
+        callback(null, false);
       }
     },
     credentials: true,

@@ -1,3 +1,5 @@
+# Note: Before running docker compose up, export the Docker GID:
+# export DOCKER_GID="$(getent group docker | cut -d: -f3)"
 name: journal-prod
 
 services:
@@ -5,6 +7,8 @@ services:
     image: traefik:v3.3.6
     restart: always
     user: "65532:65532"
+    group_add:
+      - "${DOCKER_GID}"
     read_only: true
     command:
       - "--api.insecure=false"
