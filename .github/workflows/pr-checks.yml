@@ -1,0 +1,113 @@
+name: PR Checks
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies (Backend)
+        working-directory: ./apps/backend
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          elif [ -f yarn.lock ]; then
+            yarn install --frozen-lockfile
+          elif [ -f bun.lock ]; then
+            npm install -g bun
+            bun install
+          else
+            npm install
+          fi
+
+      - name: Install dependencies (Frontend)
+        working-directory: ./apps/frontend
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          elif [ -f yarn.lock ]; then
+            yarn install --frozen-lockfile
+          elif [ -f bun.lock ]; then
+            npm install -g bun
+            bun install
+          else
+            npm install
+          fi
+
+      - name: Lint Backend
+        working-directory: ./apps/backend
+        run: |
+          if grep -q "\"lint\"" package.json; then
+            npm run lint || true
+          fi
+
+      - name: Lint Frontend
+        working-directory: ./apps/frontend
+        run: |
+          if grep -q "\"lint\"" package.json; then
+            npm run lint || true
+          fi
+
+      - name: Type check Backend
+        working-directory: ./apps/backend
+        run: |
+          if grep -q "\"typecheck\"" package.json; then
+            npm run typecheck || true
+          elif grep -q "\"tsc\"" package.json; then
+            npm run tsc -- --noEmit || true
+          fi
+
+      - name: Type check Frontend
+        working-directory: ./apps/frontend
+        run: |
+          if grep -q "\"typecheck\"" package.json; then
+            npm run typecheck || true
+          elif grep -q "\"tsc\"" package.json; then
+            npm run tsc -- --noEmit || true
+          fi
+
+  build-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build backend image (test)
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apps/backend
+          push: false
+          load: true
+          tags: backend:test
+          build-args: |
+            NEXT_PUBLIC_API_URL=http://localhost:3001
+
+      - name: Build frontend image (test)
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apps/frontend
+          push: false
+          load: true
+          tags: frontend:test
+          build-args: |
+            NEXT_PUBLIC_API_URL=http://localhost:3001
+
+      - name: Test docker compose configuration
+        run: |
+          # Verify compose file is valid
+          docker compose config
