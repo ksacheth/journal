@@ -4,9 +4,9 @@ A full-stack journal application with offline support, built with Next.js, Expre
 
 ## Architecture
 
-- **Frontend**: Next.js 16 with static export for SPA
-- **Backend**: Express.js with MongoDB and Redis caching
-- **Reverse Proxy**: Traefik with file-based configuration
+- **Frontend**: Next.js 16 with static export for SPA (served by backend)
+- **Backend**: Express.js with MongoDB and Redis caching (also serves static frontend)
+- **Reverse Proxy**: Traefik routing to a single app container
 - **Deployment**: Docker Compose with GitHub Actions CI/CD
 
 ## Project Structure
@@ -141,25 +141,23 @@ See `.env.example` for all available options.
 
 ### Traefik Configuration
 
-The application uses Traefik as a reverse proxy with file-based routing:
+The application uses Traefik as a reverse proxy with Docker label-based routing:
 
-- **Backend routes**: `/api/*` → backend:3001
-- **Frontend routes**: `/*` → frontend:3000
+- **All routes**: `/*` and `/api/*` → backend:3001 (single app container)
 
-Configuration is in `traefik.dynamic.yml`.
+Routing is defined in the backend service labels in `compose.yaml`.
 
 ## Docker Images
 
 Images are built automatically and pushed to GitHub Container Registry:
 
-- Backend: `ghcr.io/username/journal/backend`
-- Frontend: `ghcr.io/username/journal/frontend`
+- Backend (includes built frontend assets): `ghcr.io/username/journal/backend`
 
 ## Key Changes from Original Setup
 
 1. **Integrated Frontend Build**: The backend Dockerfile now includes a frontend build stage that compiles the Next.js app and copies static files to `./public`.
 
-2. **File-Based Traefik Config**: Instead of using Docker socket (which has permission issues on macOS), Traefik now uses a static configuration file.
+2. **Single App Container**: The backend serves both API and static frontend; Traefik routes all traffic to the backend container via labels.
 
 3. **Simplified Compose**: Removed security restrictions that caused issues on Docker Desktop.
 

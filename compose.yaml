@@ -64,6 +64,7 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.backend.rule=Host(`journal.sachethkoushal.tech`) || Host(`localhost`)"
       - "traefik.http.routers.backend.entrypoints=web"
+      - "traefik.http.routers.backend.priority=1"
       - "traefik.http.services.backend.loadbalancer.server.port=3001"
     healthcheck:
       test:
