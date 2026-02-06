@@ -2,7 +2,7 @@ http:
   routers:
     # Backend API routes (specific paths only)
     backend-entries:
-      rule: "Host(`journal.sachethkoushal.tech`) && PathPrefix(`/api/entries`, `/api/entry`)"
+      rule: "Host(`journal.sachethkoushal.tech`) && (PathPrefix(`/api/entries`) || PathPrefix(`/api/entry`))"
       service: backend
       entryPoints:
         - web
