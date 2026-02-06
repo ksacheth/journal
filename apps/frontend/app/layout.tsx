@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { AuthProvider } from "@/components/AuthProvider";
 import GlobalErrorHandler from "@/components/GlobalErrorHandler";
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 import "./globals.css";
@@ -44,9 +45,11 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <GlobalErrorHandler />
-        <ServiceWorkerRegistration />
-        {children}
+        <AuthProvider>
+          <GlobalErrorHandler />
+          <ServiceWorkerRegistration />
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );

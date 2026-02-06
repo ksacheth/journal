@@ -2,6 +2,64 @@ import axios, { AxiosError, AxiosInstance, AxiosResponse } from "axios";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
+// Token cache to avoid fetching on every request
+let cachedToken: string | null = null;
+let tokenExpiry: number = 0;
+
+/**
+ * Fetch a JWT token for backend communication
+ */
+async function getBackendToken(): Promise<string | null> {
+  const now = Date.now();
+
+  // Return cached token if still valid (with 5 minute buffer)
+  if (cachedToken && tokenExpiry > now + 5 * 60 * 1000) {
+    const timeLeft = Math.round((tokenExpiry - now) / 1000 / 60);
+    console.log(`🎫 [api] Using cached token (expires in ~${timeLeft} min)`);
+    return cachedToken;
+  }
+
+  console.log("🔄 [api] Fetching new backend token...");
+
+  try {
+    const tokenResponse = await fetch("/api/backend-token", {
+      credentials: "include", // Include NextAuth session cookies
+    });
+
+    if (tokenResponse.ok) {
+      const { token } = await tokenResponse.json();
+      if (token) {
+        cachedToken = token;
+        // Token expires in 24h, cache for 23h 55m
+        tokenExpiry = now + 23 * 60 * 60 * 1000 + 55 * 60 * 1000;
+        const tokenPreview = `${token.substring(0, 10)}...${token.substring(token.length - 10)}`;
+        console.log("✅ [api] Backend token fetched:", {
+          tokenPreview,
+          expiresIn: "~24h",
+        });
+        return token;
+      }
+    } else {
+      console.warn(
+        `❌ [api] Failed to fetch backend token: ${tokenResponse.status}`
+      );
+    }
+  } catch (error) {
+    console.error("❌ [api] Error fetching backend token:", error);
+  }
+
+  return null;
+}
+
+/**
+ * Clear the cached backend token (call this when user signs out)
+ */
+export function clearBackendToken(): void {
+  console.log("🗑️ [api] Clearing cached backend token");
+  cachedToken = null;
+  tokenExpiry = 0;
+}
+
 /**
  * Custom error class for API errors with status code
  */
@@ -38,14 +96,16 @@ function createApiClient(): AxiosInstance {
     headers: {
       "Content-Type": "application/json",
     },
-    withCredentials: true, // Important: sends cookies with requests (for httpOnly JWT)
+    withCredentials: false, // Don't send NextAuth cookies to backend - they're encrypted
   });
 
-  // Request interceptor - can be used for logging, adding tokens, etc.
+  // Request interceptor - fetch and add backend JWT token
   instance.interceptors.request.use(
-    (config) => {
-      // Request is already configured with credentials
-      // Add any additional request modifications here if needed
+    async (config) => {
+      const token = await getBackendToken();
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
       return config;
     },
     (error) => {
@@ -61,35 +121,41 @@ function createApiClient(): AxiosInstance {
     },
     (error: AxiosError<{ message?: string; error?: string }>) => {
       if (error.response) {
+        // Clear cached token on 401 to force refresh on next request
+        if (error.response.status === 401) {
+          console.warn("⚠️ [api] 401 error - clearing token cache");
+          clearBackendToken();
+        }
+
         // Server responded with an error status
         const errorMessage =
           error.response.data?.message ||
           error.response.data?.error ||
           "An error occurred";
-        
+
         const apiError = new ApiError(
           errorMessage,
           error.response.status,
-          error.response.data
+          error.response.data,
         );
-        
+
         return Promise.reject(apiError);
       } else if (error.request) {
         // Request was made but no response received
         const apiError = new ApiError(
           "Network error - no response received",
-          0
+          0,
         );
         return Promise.reject(apiError);
       } else {
         // Error in request setup
         const apiError = new ApiError(
           error.message || "Request configuration error",
-          0
+          0,
         );
         return Promise.reject(apiError);
       }
-    }
+    },
   );
 
   return instance;
@@ -105,7 +171,7 @@ const apiClient = createApiClient();
  */
 export async function fetchClient<T = unknown>(
   endpoint: string,
-  options: FetchClientOptions = {}
+  options: FetchClientOptions = {},
 ): Promise<T> {
   const { method = "GET", body, data, headers } = options;
 
@@ -131,7 +197,7 @@ export async function fetchClient<T = unknown>(
  */
 export async function get<T = unknown>(
   endpoint: string,
-  params?: Record<string, unknown>
+  params?: Record<string, unknown>,
 ): Promise<T> {
   const response = await apiClient.get<T>(endpoint, { params });
   return response.data;
@@ -142,7 +208,7 @@ export async function get<T = unknown>(
  */
 export async function post<T = unknown>(
   endpoint: string,
-  data?: unknown
+  data?: unknown,
 ): Promise<T> {
   const response = await apiClient.post<T>(endpoint, data);
   return response.data;
@@ -153,7 +219,7 @@ export async function post<T = unknown>(
  */
 export async function put<T = unknown>(
   endpoint: string,
-  data?: unknown
+  data?: unknown,
 ): Promise<T> {
   const response = await apiClient.put<T>(endpoint, data);
   return response.data;
@@ -162,9 +228,7 @@ export async function put<T = unknown>(
 /**
  * DELETE request helper
  */
-export async function del<T = unknown>(
-  endpoint: string
-): Promise<T> {
+export async function del<T = unknown>(endpoint: string): Promise<T> {
   const response = await apiClient.delete<T>(endpoint);
   return response.data;
 }
@@ -181,7 +245,7 @@ export async function signOut(): Promise<{ message: string }> {
  */
 export async function signIn(
   username: string,
-  password: string
+  password: string,
 ): Promise<{ message: string }> {
   return post<{ message: string }>("/api/signin", { username, password });
 }

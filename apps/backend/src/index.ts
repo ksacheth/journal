@@ -36,6 +36,33 @@ process.on("SIGINT", async () => {
 app.use(express.json());
 app.use(cookieParser());
 
+// Request logging middleware
+app.use((req, res, next) => {
+  const start = Date.now();
+
+  // Log response when it finishes
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+    const logData = {
+      method: req.method,
+      path: req.path,
+      statusCode: res.statusCode,
+      duration: `${duration}ms`,
+      origin: req.headers.origin,
+      hasAuth: !!req.headers.authorization,
+      hasCookies: !!req.headers.cookie,
+    };
+
+    if (res.statusCode >= 400) {
+      logger.warn(logData, "❌ Request failed");
+    } else {
+      logger.info(logData, "✅ Request completed");
+    }
+  });
+
+  next();
+});
+
 // Trust proxy (required for rate limiting to work correctly with nginx)
 app.set("trust proxy", 1);
 
@@ -113,5 +140,15 @@ const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
 app.use(errorHandler);
 
 app.listen(PORT, () => {
-  logger.info({ port: PORT }, "Server listening");
+  logger.info(
+    {
+      port: PORT,
+      nodeEnv: process.env.NODE_ENV,
+      corsOrigins,
+      mongoConnected: isDbHealthy(),
+      cacheConnected: cache.isHealthy(),
+      hasAuthSecret: !!process.env.AUTH_SECRET,
+    },
+    "🚀 Server listening",
+  );
 });

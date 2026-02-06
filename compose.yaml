@@ -1,5 +1,3 @@
-# Static configuration for local development on macOS
-# No Docker socket required - uses file provider instead
 name: journal-prod
 
 services:
@@ -33,6 +31,8 @@ services:
       - journal-network
     volumes:
       - redis-data:/data
+    ports:
+      - "6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 30s
@@ -51,7 +51,7 @@ services:
     environment:
       - NODE_ENV=production
       - MONGODB_URL=${MONGODB_URL}
-      - JWT_SECRET=${JWT_SECRET}
+      - AUTH_SECRET=${AUTH_SECRET}
       - PORT=3001
       - CORS_ORIGIN=${CORS_ORIGIN}
       - REDIS_URL=redis://redis:6379
@@ -81,6 +81,13 @@ services:
     environment:
       - NODE_ENV=production
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+      - MONGODB_URL=${MONGODB_URL}
+      - AUTH_SECRET=${AUTH_SECRET}
+      - AUTH_GOOGLE_ID=${AUTH_GOOGLE_ID}
+      - AUTH_GOOGLE_SECRET=${AUTH_GOOGLE_SECRET}
+      - AUTH_APPLE_ID=${AUTH_APPLE_ID}
+      - AUTH_APPLE_SECRET=${AUTH_APPLE_SECRET}
+      - NEXTAUTH_URL=${NEXTAUTH_URL}
     depends_on:
       - backend
     networks:

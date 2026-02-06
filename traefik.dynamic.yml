@@ -1,15 +1,36 @@
 http:
   routers:
-    backend:
-      rule: "Host(`journal.sachethkoushal.tech`) && PathPrefix(`/api`)"
+    # Backend API routes (specific paths only)
+    backend-entries:
+      rule: "Host(`journal.sachethkoushal.tech`) && PathPrefix(`/api/entries`, `/api/entry`)"
       service: backend
       entryPoints:
         - web
+      priority: 20
+
+    # Legacy backend auth routes (kept for backwards compatibility if needed)
+    backend-auth:
+      rule: "Host(`journal.sachethkoushal.tech`) && (Path(`/api/signin`) || Path(`/api/signup`) || Path(`/api/signout`))"
+      service: backend
+      entryPoints:
+        - web
+      priority: 20
+
+    # Backend health check
+    backend-health:
+      rule: "Host(`journal.sachethkoushal.tech`) && Path(`/api/health`)"
+      service: backend
+      entryPoints:
+        - web
+      priority: 20
+
+    # Frontend (catches all other routes including /api/auth/* and /api/backend-token)
     frontend:
       rule: "Host(`journal.sachethkoushal.tech`)"
       service: frontend
       entryPoints:
         - web
+      priority: 10
 
   services:
     backend:
