@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "migrate-user": "npx tsx scripts/migrate-user.ts"
   },
   "dependencies": {
     "@auth/mongodb-adapter": "^3.0.0",

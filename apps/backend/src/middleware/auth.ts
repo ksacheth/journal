@@ -34,8 +34,20 @@ export const authHandle = async (
 
   logger.debug({ cookieKeys }, "🍪 Available cookies");
 
-  // Check for next-auth.session-token cookie (development)
-  if (req.cookies?.["authjs.session-token"]) {
+  // Check Authorization header FIRST (preferred method)
+  const authHeader = req.headers["authorization"];
+  if (authHeader?.startsWith("Bearer ")) {
+    token = authHeader.slice(7);
+    tokenSource = "authorization-bearer";
+    logger.info(
+      {
+        hasAuthHeader: true,
+        tokenLength: token.length,
+      },
+      "🔑 Using Authorization header token",
+    );
+  } else if (req.cookies?.["authjs.session-token"]) {
+    // Fallback to cookies (development)
     token = req.cookies["authjs.session-token"];
     tokenSource = "authjs.session-token";
   } else if (req.cookies?.["__Secure-authjs.session-token"]) {
@@ -53,20 +65,6 @@ export const authHandle = async (
     // Fallback to legacy authToken cookie for backward compatibility
     token = req.cookies.authToken;
     tokenSource = "authToken";
-  } else {
-    // Fallback to Authorization header
-    const authHeader = req.headers["authorization"];
-    logger.debug(
-      {
-        hasAuthHeader: !!authHeader,
-        authHeaderPreview: authHeader?.substring(0, 20),
-      },
-      "🔑 Checking Authorization header",
-    );
-    if (authHeader?.startsWith("Bearer ")) {
-      token = authHeader.slice(7);
-      tokenSource = "authorization-bearer";
-    }
   }
 
   if (!token) {
