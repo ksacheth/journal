@@ -3,6 +3,15 @@ import mongoose from "mongoose";
 const Schema = mongoose.Schema;
 const ObjectId = Schema.ObjectId;
 
+const TodoSchema = new Schema(
+  {
+    id: { type: String, required: true },
+    text: { type: String, required: true },
+    completed: { type: Boolean, default: false },
+  },
+  { _id: false },
+);
+
 const EntrySchema = new Schema({
   userId: { type: ObjectId, ref: "Users", required: true },
   date: { type: Date, required: [true, "Date is required"] },
@@ -14,13 +23,8 @@ const EntrySchema = new Schema({
     required: [true, "Mood is required"],
   },
   todos: {
-    type: [
-      {
-        id: { type: String, required: true },
-        text: { type: String, required: true },
-        completed: { type: Boolean, default: false },
-      },
-    ],
+    type: [TodoSchema],
+    default: [],
   },
   tags: {
     type: [String],

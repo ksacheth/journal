@@ -1,5 +1,7 @@
 import express, { type ErrorRequestHandler } from "express";
 import cors from "cors";
+import helmet from "helmet";
+import compression from "compression";
 import cookieParser from "cookie-parser";
 import path from "path";
 import { connectDb, isDbHealthy } from "./db";
@@ -10,6 +12,12 @@ import { cache } from "./cache";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// Security headers
+app.use(helmet());
+
+// Response compression
+app.use(compression());
 
 process.on("unhandledRejection", (reason) => {
   logger.error({ err: reason }, "Unhandled promise rejection");
@@ -33,7 +41,7 @@ process.on("SIGINT", async () => {
   process.exit(0);
 });
 
-app.use(express.json({ limit: "10mb" }));
+app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
 
 // Request logging middleware

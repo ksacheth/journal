@@ -7,7 +7,8 @@
     "dev": "bun --watch src/index.ts",
     "build": "echo 'No build step needed for Bun'",
     "start": "bun src/index.ts",
-    "lint": "echo 'No lint configured'"
+    "lint": "echo 'No lint configured'",
+    "test": "bun test"
   },
   "devDependencies": {
     "@types/bcryptjs": "^3.0.0",
@@ -22,12 +23,15 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@types/compression": "^1.8.1",
     "bcryptjs": "^3.0.3",
+    "compression": "^1.8.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dompurify": "^3.3.1",
     "express": "^5.2.1",
     "express-rate-limit": "^8.2.1",
+    "helmet": "^8.1.0",
     "ioredis": "^5.4.2",
     "jose": "5.9.6",
     "jsdom": "^27.4.0",
