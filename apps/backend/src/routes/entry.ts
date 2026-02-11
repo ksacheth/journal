@@ -1,5 +1,7 @@
 import express from "express";
 import rateLimit from "express-rate-limit";
+import { JSDOM } from "jsdom";
+import DOMPurify from "dompurify";
 import { EntryModel } from "../models/Entry";
 import { authHandle } from "../middleware/auth";
 import { entrySchema } from "../validators";
@@ -12,6 +14,9 @@ import {
   getMonthRange,
   createDateAtMidnight,
 } from "../dateUtils";
+
+const window = new JSDOM("").window;
+const purify = DOMPurify(window);
 
 const router = express.Router();
 
@@ -228,6 +233,14 @@ router.post("/entry/:date", entryWriteLimiter, authHandle, async (req, res) => {
 
     const { title, text, mood, todos, tags } = validationResult.data;
 
+    // Sanitize input
+    const sanitizedTitle = title ? purify.sanitize(title) : undefined;
+    const sanitizedText = text ? purify.sanitize(text) : undefined;
+    const sanitizedTodos = todos?.map((todo) => ({
+      ...todo,
+      text: purify.sanitize(todo.text),
+    }));
+
     // Parse date parameter using shared utility
     const dateResult = parseDate(dateParam);
     if (!dateResult.success || !dateResult.data) {
@@ -250,10 +263,10 @@ router.post("/entry/:date", entryWriteLimiter, authHandle, async (req, res) => {
       {
         userId: userId,
         date: entryDate,
-        title: title,
-        text: text,
+        title: sanitizedTitle,
+        text: sanitizedText,
         mood: mood,
-        todos: todos || undefined,
+        todos: sanitizedTodos || undefined,
         tags: tags || undefined,
       },
       {
