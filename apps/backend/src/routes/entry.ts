@@ -107,10 +107,10 @@ router.get("/entries/:month", authHandle, async (req, res) => {
       entries: entries.map((entry) => {
         // entry.date is always a Date per Entry schema
         const dateValue = entry.date as Date;
-        // Build local date string to avoid UTC shifts
-        const year = dateValue.getFullYear();
-        const month = String(dateValue.getMonth() + 1).padStart(2, "0");
-        const day = String(dateValue.getDate()).padStart(2, "0");
+        // Build UTC date string to ensure consistency with stored UTC dates
+        const year = dateValue.getUTCFullYear();
+        const month = String(dateValue.getUTCMonth() + 1).padStart(2, "0");
+        const day = String(dateValue.getUTCDate()).padStart(2, "0");
         const dateStr = `${year}-${month}-${day}`;
         return {
           date: dateStr,
@@ -238,7 +238,7 @@ router.post("/entry/:date", entryWriteLimiter, authHandle, async (req, res) => {
 
     const { year, month, day } = dateResult.data;
 
-    // Create date at local midnight using shared utility
+    // Create date at UTC midnight using shared utility
     const entryDate = createDateAtMidnight(year, month, day);
 
     // Create or update entry (upsert)

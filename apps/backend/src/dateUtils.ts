@@ -31,7 +31,10 @@ export function parseDate(dateStr: string): DateParseResult {
 
   const parts = dateStr.split("-");
   if (parts.length !== 3) {
-    return { success: false, error: "Invalid date format. Expected YYYY-MM-DD" };
+    return {
+      success: false,
+      error: "Invalid date format. Expected YYYY-MM-DD",
+    };
   }
 
   const [yearStr, monthStr, dayStr] = parts;
@@ -39,7 +42,11 @@ export function parseDate(dateStr: string): DateParseResult {
   const month = Number.parseInt(monthStr ?? "", 10);
   const day = Number.parseInt(dayStr ?? "", 10);
 
-  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) {
+  if (
+    !Number.isFinite(year) ||
+    !Number.isFinite(month) ||
+    !Number.isFinite(day)
+  ) {
     return { success: false, error: "Invalid date format" };
   }
 
@@ -47,9 +54,13 @@ export function parseDate(dateStr: string): DateParseResult {
     return { success: false, error: "Month must be between 1 and 12" };
   }
 
-  const daysInMonth = new Date(year, month, 0).getDate();
+  // Use UTC to avoid timezone issues when calculating days in month
+  const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
   if (day < 1 || day > daysInMonth) {
-    return { success: false, error: `Day must be between 1 and ${daysInMonth}` };
+    return {
+      success: false,
+      error: `Day must be between 1 and ${daysInMonth}`,
+    };
   }
 
   return {
@@ -70,9 +81,12 @@ export function parseMonth(monthParam: string): MonthParseResult {
     // Format: "YYYY-MM"
     const parts = monthParam.split("-");
     const [yearStr, monthStr] = parts;
-    
+
     if (!yearStr || !monthStr) {
-      return { success: false, error: "Invalid month format. Expected YYYY-MM" };
+      return {
+        success: false,
+        error: "Invalid month format. Expected YYYY-MM",
+      };
     }
 
     const year = Number.parseInt(yearStr, 10);
@@ -95,7 +109,7 @@ export function parseMonth(monthParam: string): MonthParseResult {
     return { success: false, error: "Invalid month format" };
   }
 
-  const year = new Date().getFullYear();
+  const year = new Date().getUTCFullYear();
   return { success: true, data: { year, month } };
 }
 
@@ -103,7 +117,11 @@ export function parseMonth(monthParam: string): MonthParseResult {
  * Create a Date object for the start of a given day (midnight UTC)
  * Uses UTC to ensure consistent date storage in MongoDB regardless of server timezone
  */
-export function createDateAtMidnight(year: number, month: number, day: number): Date {
+export function createDateAtMidnight(
+  year: number,
+  month: number,
+  day: number,
+): Date {
   return new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
 }
 
@@ -111,7 +129,11 @@ export function createDateAtMidnight(year: number, month: number, day: number): 
  * Get the start and end of a day for range queries (UTC)
  * Uses UTC dates to match MongoDB's storage format
  */
-export function getDayRange(year: number, month: number, day: number): { start: Date; end: Date } {
+export function getDayRange(
+  year: number,
+  month: number,
+  day: number,
+): { start: Date; end: Date } {
   const start = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
   const end = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999));
   return { start, end };
@@ -121,7 +143,10 @@ export function getDayRange(year: number, month: number, day: number): { start: 
  * Get the start and end of a month for range queries (UTC)
  * Uses UTC dates to match MongoDB's storage format
  */
-export function getMonthRange(year: number, month: number): { start: Date; end: Date } {
+export function getMonthRange(
+  year: number,
+  month: number,
+): { start: Date; end: Date } {
   const start = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0, 0));
   const end = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
   return { start, end };
