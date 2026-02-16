@@ -1,27 +1,27 @@
-import { describe, test, expect, mock, beforeEach } from "bun:test";
+import { describe, test, expect, vi, beforeEach } from "vitest";
 import type { Request, Response } from "express";
 
 // Mock dependencies before importing the module
 const mockUserModel = {
-  findOne: mock(() => Promise.resolve(null)),
+  findOne: vi.fn(() => Promise.resolve(null)),
 };
 
 const mockBcrypt = {
-  compare: mock(() => Promise.resolve(false)),
+  compare: vi.fn(() => Promise.resolve(false)),
 };
 
-const mockSignJWT = mock(function (this: any) {
+const mockSignJWT = vi.fn(function (this: any) {
   return {
-    setProtectedHeader: mock(() => this),
-    setIssuedAt: mock(() => this),
-    setExpirationTime: mock(() => this),
-    sign: mock(() => Promise.resolve("mock.jwt.token")),
+    setProtectedHeader: vi.fn(() => this),
+    setIssuedAt: vi.fn(() => this),
+    setExpirationTime: vi.fn(() => this),
+    sign: vi.fn(() => Promise.resolve("mock.jwt.token")),
   };
 });
 
 const mockLogger = {
-  error: mock(() => {}),
-  info: mock(() => {}),
+  error: vi.fn(() => {}),
+  info: vi.fn(() => {}),
 };
 
 // Create a mock request helper
@@ -43,19 +43,24 @@ function createMockResponse(): Partial<Response> & {
     jsonData: null,
     cookieData: null,
     clearCookieData: null,
-    status: mock(function (this: any, code: number) {
+    status: vi.fn(function (this: any, code: number) {
       this.statusCode = code;
       return this;
     }),
-    json: mock(function (this: any, data: any) {
+    json: vi.fn(function (this: any, data: any) {
       this.jsonData = data;
       return this;
     }),
-    cookie: mock(function (this: any, name: string, value: string, options: any) {
+    cookie: vi.fn(function (
+      this: any,
+      name: string,
+      value: string,
+      options: any,
+    ) {
       this.cookieData = { name, value, options };
       return this;
     }),
-    clearCookie: mock(function (this: any, name: string, options: any) {
+    clearCookie: vi.fn(function (this: any, name: string, options: any) {
       this.clearCookieData = { name, options };
       return this;
     }),
@@ -66,7 +71,10 @@ function createMockResponse(): Partial<Response> & {
 describe("auth routes", () => {
   describe("POST /signup", () => {
     test("should return 403 with signup disabled message", async () => {
-      const req = createMockRequest({ username: "test", password: "password123" });
+      const req = createMockRequest({
+        username: "test",
+        password: "password123",
+      });
       const res = createMockResponse();
 
       // Import auth module dynamically to use mocks
@@ -107,7 +115,10 @@ describe("auth routes", () => {
     test("should return 400 for empty username", async () => {
       const { signinSchema } = await import("../validators");
 
-      const result = signinSchema.safeParse({ username: "", password: "password123" });
+      const result = signinSchema.safeParse({
+        username: "",
+        password: "password123",
+      });
       expect(result.success).toBe(false);
     });
 
@@ -230,7 +241,8 @@ describe("auth routes", () => {
 
   describe("dummy hash for timing attack protection", () => {
     test("should have pre-calculated dummy hash", () => {
-      const DUMMY_HASH = "$2a$10$abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklm";
+      const DUMMY_HASH =
+        "$2a$10$abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklm";
 
       // Verify it's a bcrypt-like hash format
       expect(DUMMY_HASH).toMatch(/^\$2[aby]\$/);
@@ -288,14 +300,19 @@ describe("auth routes", () => {
   describe("password validation for timing attacks", () => {
     test("should always perform comparison even if user not found", async () => {
       // This test verifies the concept of timing attack protection
-      const DUMMY_HASH = "$2a$10$abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklm";
+      const DUMMY_HASH =
+        "$2a$10$abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklm";
 
       // Verify that both scenarios use the same comparison logic
       const existingUser = { password: "real_hash" };
       const nonExistingUser = null;
 
-      const targetHashExisting = existingUser ? existingUser.password : DUMMY_HASH;
-      const targetHashNonExisting = nonExistingUser ? (nonExistingUser as any).password : DUMMY_HASH;
+      const targetHashExisting = existingUser
+        ? existingUser.password
+        : DUMMY_HASH;
+      const targetHashNonExisting = nonExistingUser
+        ? (nonExistingUser as any).password
+        : DUMMY_HASH;
 
       expect(targetHashExisting).toBe("real_hash");
       expect(targetHashNonExisting).toBe(DUMMY_HASH);

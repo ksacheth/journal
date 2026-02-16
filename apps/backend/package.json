@@ -7,7 +7,10 @@
     "dev": "bun --watch src/index.ts",
     "build": "echo 'No build step needed for Bun'",
     "start": "bun src/index.ts",
-    "lint": "echo 'No lint configured'"
+    "lint": "echo 'No lint configured'",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "devDependencies": {
     "@types/bcryptjs": "^3.0.0",
@@ -16,7 +19,9 @@
     "@types/cors": "^2.8.19",
     "@types/dompurify": "^3.2.0",
     "@types/express": "^5.0.6",
-    "@types/jsdom": "^27.0.0"
+    "@types/jsdom": "^27.0.0",
+    "@vitest/coverage-v8": "^4.0.0",
+    "vitest": "^4.0.0"
   },
   "peerDependencies": {
     "typescript": "^5"

@@ -1,4 +1,4 @@
-import { describe, test, expect, mock, beforeEach } from "bun:test";
+import { describe, test, expect, vi, beforeEach } from "vitest";
 import {
   parseDate,
   parseMonth,
@@ -23,7 +23,9 @@ describe("entry routes", () => {
       const ENTRY_RATE_LIMIT = { MAX_ATTEMPTS: 100 };
       const AUTH_RATE_LIMIT = { MAX_ATTEMPTS: 5 };
 
-      expect(ENTRY_RATE_LIMIT.MAX_ATTEMPTS).toBeGreaterThan(AUTH_RATE_LIMIT.MAX_ATTEMPTS);
+      expect(ENTRY_RATE_LIMIT.MAX_ATTEMPTS).toBeGreaterThan(
+        AUTH_RATE_LIMIT.MAX_ATTEMPTS,
+      );
     });
   });
 
@@ -346,10 +348,13 @@ describe("entry routes", () => {
     test("should reject too many todos", async () => {
       const { entrySchema, VALIDATION_LIMITS } = await import("../validators");
 
-      const tooManyTodos = Array.from({ length: VALIDATION_LIMITS.TODOS_MAX + 1 }, (_, i) => ({
-        id: String(i),
-        text: `Todo ${i}`,
-      }));
+      const tooManyTodos = Array.from(
+        { length: VALIDATION_LIMITS.TODOS_MAX + 1 },
+        (_, i) => ({
+          id: String(i),
+          text: `Todo ${i}`,
+        }),
+      );
 
       const result = entrySchema.safeParse({
         mood: "good",
@@ -362,7 +367,10 @@ describe("entry routes", () => {
     test("should reject too many tags", async () => {
       const { entrySchema, VALIDATION_LIMITS } = await import("../validators");
 
-      const tooManyTags = Array.from({ length: VALIDATION_LIMITS.TAGS_MAX + 1 }, (_, i) => `tag${i}`);
+      const tooManyTags = Array.from(
+        { length: VALIDATION_LIMITS.TAGS_MAX + 1 },
+        (_, i) => `tag${i}`,
+      );
 
       const result = entrySchema.safeParse({
         mood: "good",
@@ -399,10 +407,13 @@ describe("entry routes", () => {
     test("should accept maximum allowed todos", async () => {
       const { entrySchema, VALIDATION_LIMITS } = await import("../validators");
 
-      const maxTodos = Array.from({ length: VALIDATION_LIMITS.TODOS_MAX }, (_, i) => ({
-        id: String(i),
-        text: `Todo ${i}`,
-      }));
+      const maxTodos = Array.from(
+        { length: VALIDATION_LIMITS.TODOS_MAX },
+        (_, i) => ({
+          id: String(i),
+          text: `Todo ${i}`,
+        }),
+      );
 
       const result = entrySchema.safeParse({
         mood: "good",
@@ -415,7 +426,10 @@ describe("entry routes", () => {
     test("should accept maximum allowed tags", async () => {
       const { entrySchema, VALIDATION_LIMITS } = await import("../validators");
 
-      const maxTags = Array.from({ length: VALIDATION_LIMITS.TAGS_MAX }, (_, i) => `tag${i}`);
+      const maxTags = Array.from(
+        { length: VALIDATION_LIMITS.TAGS_MAX },
+        (_, i) => `tag${i}`,
+      );
 
       const result = entrySchema.safeParse({
         mood: "good",

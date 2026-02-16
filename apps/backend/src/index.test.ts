@@ -1,4 +1,4 @@
-import { describe, test, expect } from "bun:test";
+import { describe, test, expect } from "vitest";
 
 describe("server configuration", () => {
   describe("PORT configuration", () => {
@@ -24,14 +24,16 @@ describe("server configuration", () => {
     });
 
     test("should default to 3001 when PORT is empty string", () => {
-      const port = "" || 3001;
+      const emptyString = "" as string;
+      const port = emptyString || 3001;
       expect(port).toBe(3001);
     });
   });
 
   describe("CORS configuration", () => {
     test("should parse CORS_ORIGIN from comma-separated string", () => {
-      const corsOriginString = "http://localhost:3000,https://example.com,https://app.example.com";
+      const corsOriginString =
+        "http://localhost:3000,https://example.com,https://app.example.com";
       const corsOrigins = corsOriginString
         .split(",")
         .map((origin) => origin.trim())
@@ -44,7 +46,8 @@ describe("server configuration", () => {
     });
 
     test("should use default when CORS_ORIGIN is not set", () => {
-      const corsOriginString = undefined ?? "http://localhost:3000";
+      const notSet = undefined as string | undefined;
+      const corsOriginString = notSet ?? "http://localhost:3000";
       const corsOrigins = corsOriginString
         .split(",")
         .map((origin) => origin.trim())
@@ -62,7 +65,10 @@ describe("server configuration", () => {
         .filter(Boolean);
 
       expect(corsOrigins).toHaveLength(2);
-      expect(corsOrigins).toEqual(["http://localhost:3000", "https://example.com"]);
+      expect(corsOrigins).toEqual([
+        "http://localhost:3000",
+        "https://example.com",
+      ]);
     });
 
     test("should trim whitespace from CORS origins", () => {
@@ -106,7 +112,14 @@ describe("server configuration", () => {
     });
 
     test("should allow correct HTTP methods", () => {
-      const allowedMethods = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"];
+      const allowedMethods = [
+        "GET",
+        "POST",
+        "PUT",
+        "PATCH",
+        "DELETE",
+        "OPTIONS",
+      ];
       expect(allowedMethods).toContain("GET");
       expect(allowedMethods).toContain("POST");
       expect(allowedMethods).toContain("PUT");
@@ -191,7 +204,9 @@ describe("server configuration", () => {
 
     test("should format timestamp as ISO string", () => {
       const timestamp = new Date().toISOString();
-      expect(timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+      expect(timestamp).toMatch(
+        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/,
+      );
     });
 
     test("should show connected status for healthy database", () => {
