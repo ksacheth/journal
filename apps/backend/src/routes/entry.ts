@@ -1,4 +1,5 @@
 import express from "express";
+import rateLimit from "express-rate-limit";
 import { EntryModel } from "../models/Entry";
 import { authHandle } from "../middleware/auth";
 import { entrySchema } from "../validators";
@@ -13,6 +14,23 @@ import {
 } from "../dateUtils";
 
 const router = express.Router();
+
+// Rate limiting configuration for entry routes
+const ENTRY_RATE_LIMIT = {
+  WINDOW_MS: 15 * 60 * 1000, // 15 minutes
+  MAX_ATTEMPTS: 100, // More lenient than auth routes
+} as const;
+
+// Rate limiting for entry write operations
+const entryWriteLimiter = rateLimit({
+  windowMs: ENTRY_RATE_LIMIT.WINDOW_MS,
+  max: ENTRY_RATE_LIMIT.MAX_ATTEMPTS,
+  message: {
+    error: "Too many entry operations, please try again later",
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 router.get("/entries/:month", authHandle, async (req, res) => {
   try {
@@ -89,10 +107,10 @@ router.get("/entries/:month", authHandle, async (req, res) => {
       entries: entries.map((entry) => {
         // entry.date is always a Date per Entry schema
         const dateValue = entry.date as Date;
-        // Build local date string to avoid UTC shifts
-        const year = dateValue.getFullYear();
-        const month = String(dateValue.getMonth() + 1).padStart(2, "0");
-        const day = String(dateValue.getDate()).padStart(2, "0");
+        // Build UTC date string to ensure consistency with stored UTC dates
+        const year = dateValue.getUTCFullYear();
+        const month = String(dateValue.getUTCMonth() + 1).padStart(2, "0");
+        const day = String(dateValue.getUTCDate()).padStart(2, "0");
         const dateStr = `${year}-${month}-${day}`;
         return {
           date: dateStr,
@@ -186,7 +204,7 @@ router.get("/entry/:date", authHandle, async (req, res) => {
   }
 });
 
-router.post("/entry/:date", authHandle, async (req, res) => {
+router.post("/entry/:date", entryWriteLimiter, authHandle, async (req, res) => {
   try {
     const dateParam = req.params.date as string;
     const userId = req.userId;
@@ -220,7 +238,7 @@ router.post("/entry/:date", authHandle, async (req, res) => {
 
     const { year, month, day } = dateResult.data;
 
-    // Create date at local midnight using shared utility
+    // Create date at UTC midnight using shared utility
     const entryDate = createDateAtMidnight(year, month, day);
 
     // Create or update entry (upsert)

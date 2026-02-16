@@ -33,7 +33,7 @@ process.on("SIGINT", async () => {
   process.exit(0);
 });
 
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
 app.use(cookieParser());
 
 // Request logging middleware

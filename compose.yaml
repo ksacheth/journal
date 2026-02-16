@@ -41,6 +41,20 @@ services:
       start_period: 10s
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
 
+  mongodb:
+    image: mongo:7.0
+    restart: always
+    networks:
+      - journal-network
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
   backend:
     build:
       context: ./apps/backend
@@ -55,9 +69,11 @@ services:
       - PORT=3001
       - CORS_ORIGIN=${CORS_ORIGIN}
       - REDIS_URL=redis://redis:6379
-      - CACHE_ENABLED=false
+      - CACHE_ENABLED=${CACHE_ENABLED}
     depends_on:
       redis:
+        condition: service_healthy
+      mongodb:
         condition: service_healthy
     networks:
       - journal-network
@@ -99,3 +115,5 @@ networks:
 
 volumes:
   redis-data:
+  mongodb_data:
+    external: true

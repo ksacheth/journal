@@ -1,5 +1,5 @@
 import express from "express";
-import jwt from "jsonwebtoken";
+import { SignJWT } from "jose";
 import bcrypt from "bcryptjs";
 import rateLimit from "express-rate-limit";
 import { UserModel } from "../models/User";
@@ -60,9 +60,13 @@ router.post("/signin", async (req, res) => {
     const passwordMatch = await bcrypt.compare(password, targetHash);
 
     if (existingUser && passwordMatch) {
-      const token = jwt.sign({ userId: existingUser.id }, JWT_SECRET, {
-        expiresIn: "7d", // Token expires in 7 days
-      });
+      // Use jose for JWT signing (consistent with auth middleware)
+      const encoder = new TextEncoder();
+      const token = await new SignJWT({ userId: existingUser.id })
+        .setProtectedHeader({ alg: "HS256" })
+        .setIssuedAt()
+        .setExpirationTime("7d")
+        .sign(encoder.encode(JWT_SECRET));
 
       // Set httpOnly cookie - more secure than localStorage
       res.cookie("authToken", token, {
