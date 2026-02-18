@@ -7,7 +7,8 @@
     "dev": "bun --watch src/index.ts",
     "build": "echo 'No build step needed for Bun'",
     "start": "bun src/index.ts",
-    "lint": "echo 'No lint configured'",
+    "lint": "bunx tsc --noEmit",
+    "check-types": "bunx tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"

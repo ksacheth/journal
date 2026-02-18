@@ -37,6 +37,7 @@ function EntryPage() {
         <div className="mb-6 sm:mb-10 flex items-center justify-center gap-3 sm:gap-6">
           <button
             onClick={() => setCurrentYear(currentYear - 1)}
+            aria-label={`Go to year ${currentYear - 1}`}
             className="smooth-transition flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl border border-secondary/20 bg-surface text-secondary shadow-sm hover:scale-110 hover:border-primary hover:bg-primary hover:text-white"
           >
             <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
@@ -46,6 +47,7 @@ function EntryPage() {
           </span>
           <button
             onClick={() => setCurrentYear(currentYear + 1)}
+            aria-label={`Go to year ${currentYear + 1}`}
             className="smooth-transition flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl border border-secondary/20 bg-surface text-secondary shadow-sm hover:scale-110 hover:border-primary hover:bg-primary hover:text-white"
           >
             <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />

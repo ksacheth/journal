@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { X, Hash, Plus, Check, Sparkles, GripVertical, Pencil } from "lucide-react";
-import { MOODS, MONTHS_FULL, DAYS_OF_WEEK_FULL, type MoodType } from "@/lib/constants";
+import { MOODS, type MoodType } from "@/lib/constants";
 
 interface Todo {
   id: string;
@@ -38,6 +38,18 @@ const moods = Object.entries(MOODS).map(([value, data]) => ({
   color: data.color,
 }));
 
+const dateFormatter = new Intl.DateTimeFormat("en-US", {
+  weekday: "long",
+  month: "long",
+  day: "numeric",
+  year: "numeric",
+});
+
+const timeFormatter = new Intl.DateTimeFormat("en-US", {
+  hour: "numeric",
+  minute: "2-digit",
+});
+
 export default function JournalEntryModal({
   isOpen,
   onClose,
@@ -71,19 +83,11 @@ export default function JournalEntryModal({
     return () => clearInterval(timer);
   }, []);
 
-  const formatDate = (date: Date, time: Date) => {
-    const dayOfWeek = DAYS_OF_WEEK_FULL[date.getDay()];
-    const month = MONTHS_FULL[date.getMonth()];
-    const day = date.getDate();
-    const year = date.getFullYear();
-    const hours = time.getHours();
-    const minutes = time.getMinutes();
-    const ampm = hours >= 12 ? "PM" : "AM";
-    const displayHours = hours % 12 || 12;
-    const displayMinutes = minutes.toString().padStart(2, "0");
+  const modalTitleId = "journal-entry-modal-title";
+  const textAreaId = "journal-entry-text";
 
-    return `${dayOfWeek}, ${month} ${day}, ${year} • ${displayHours}:${displayMinutes} ${ampm}`;
-  };
+  const formatDate = (date: Date, time: Date) =>
+    `${dateFormatter.format(date)} • ${timeFormatter.format(time)}`;
 
   const handleAddTag = () => {
     if (newTag.trim() && !tags.includes(newTag.trim())) {
@@ -96,7 +100,7 @@ export default function JournalEntryModal({
     setTags(tags.filter((tag) => tag !== tagToRemove));
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleTagKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && newTag.trim()) {
       handleAddTag();
     }
@@ -126,7 +130,7 @@ export default function JournalEntryModal({
     );
   };
 
-  const handleTodoKeyPress = (e: React.KeyboardEvent) => {
+  const handleTodoKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && newTodo.trim()) {
       handleAddTodo();
     }
@@ -257,16 +261,24 @@ export default function JournalEntryModal({
       <div className="flex min-h-full items-center justify-center p-4">
         {/* Backdrop */}
         <div
+          aria-hidden="true"
           className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm"
           onClick={handleDiscard}
         />
 
         {/* Modal */}
-        <div className="glass-effect bounce-in relative w-full max-w-3xl rounded-2xl sm:rounded-3xl p-4 sm:p-8 lg:p-10 shadow-2xl bg-white/95">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={modalTitleId}
+          className="glass-effect bounce-in relative w-full max-w-3xl rounded-2xl sm:rounded-3xl p-4 sm:p-8 lg:p-10 shadow-2xl bg-white/95"
+        >
           {/* Close Button - Saves and exits */}
           <button
+            type="button"
             onClick={handleSave}
             disabled={isSaving}
+            aria-label="Save and close entry"
             className="smooth-transition absolute right-3 top-3 sm:right-6 sm:top-6 flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-xl border border-secondary/20 bg-surface text-secondary hover:scale-110 hover:border-primary hover:bg-primary hover:text-white hover:rotate-90 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <X className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -276,7 +288,10 @@ export default function JournalEntryModal({
           <div className="mb-4 sm:mb-8 text-center">
             <div className="mb-2 sm:mb-4 flex items-center justify-center gap-1 sm:gap-2">
               <Sparkles className="h-3 w-3 sm:h-5 sm:w-5 text-primary" />
-              <h2 className="text-secondary text-xs sm:text-base font-bold uppercase tracking-wider">
+              <h2
+                id={modalTitleId}
+                className="text-secondary text-xs sm:text-base font-bold uppercase tracking-wider"
+              >
                 {formatDate(currentDate, currentTime)}
               </h2>
               <Sparkles className="h-3 w-3 sm:h-5 sm:w-5 text-accent" />
@@ -284,7 +299,10 @@ export default function JournalEntryModal({
           </div>
 
           {errorMessage && (
-            <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-600">
+            <div
+              role="alert"
+              className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-600"
+            >
               {errorMessage}
             </div>
           )}
@@ -293,6 +311,7 @@ export default function JournalEntryModal({
           <div className="mb-4 sm:mb-8 flex flex-wrap items-center justify-center gap-2 sm:gap-4">
             {moods.map((mood) => (
               <button
+                type="button"
                 key={mood.value}
                 onClick={() => setSelectedMood(mood.value)}
                 className={`smooth-transition flex h-12 w-12 sm:h-16 sm:w-16 items-center justify-center rounded-xl sm:rounded-2xl border-2 text-2xl sm:text-4xl ${
@@ -321,7 +340,11 @@ export default function JournalEntryModal({
 
           {/* Text Input */}
           <div className="mb-4 sm:mb-6">
+            <label htmlFor={textAreaId} className="sr-only">
+              Journal entry text
+            </label>
             <textarea
+              id={textAreaId}
               value={text}
               onChange={(e) => setText(e.target.value)}
               placeholder="How were your days... ✨"
@@ -363,6 +386,11 @@ export default function JournalEntryModal({
                   <button
                     type="button"
                     onClick={() => handleToggleTodo(todo.id)}
+                    aria-label={
+                      todo.completed
+                        ? `Mark "${todo.text}" as incomplete`
+                        : `Mark "${todo.text}" as complete`
+                    }
                     className={`smooth-transition flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border ${
                       todo.completed
                         ? "border-success bg-success text-white"
@@ -385,7 +413,8 @@ export default function JournalEntryModal({
                       placeholder="Edit task..."
                     />
                   ) : (
-                    <span
+                    <button
+                      type="button"
                       onClick={() => handleStartEditTodo(todo)}
                       className={`flex-1 text-sm font-medium cursor-text hover:bg-primary/5 rounded px-1 py-0.5 -mx-1 transition-colors ${
                         todo.completed
@@ -393,9 +422,10 @@ export default function JournalEntryModal({
                           : "text-text-primary"
                       }`}
                       title="Click to edit"
+                      aria-label={`Edit task: ${todo.text}`}
                     >
                       {todo.text}
-                    </span>
+                    </button>
                   )}
                   
                   {/* Edit and delete buttons */}
@@ -404,6 +434,7 @@ export default function JournalEntryModal({
                       <button
                         type="button"
                         onClick={() => handleStartEditTodo(todo)}
+                        aria-label={`Edit task: ${todo.text}`}
                         className="smooth-transition text-text-secondary hover:scale-110 hover:text-primary"
                         title="Edit task"
                       >
@@ -412,6 +443,7 @@ export default function JournalEntryModal({
                       <button
                         type="button"
                         onClick={() => handleRemoveTodo(todo.id)}
+                        aria-label={`Delete task: ${todo.text}`}
                         className="smooth-transition text-text-secondary hover:scale-110 hover:text-error"
                         title="Delete task"
                       >
@@ -424,20 +456,24 @@ export default function JournalEntryModal({
                   {editingTodoId === todo.id && (
                     <div className="flex gap-1">
                       <button
+                        type="button"
                         onMouseDown={(e) => {
                           e.preventDefault(); // Prevent blur from firing
                           handleSaveEditTodo();
                         }}
+                        aria-label="Save edited task"
                         className="smooth-transition flex h-7 w-7 items-center justify-center rounded-lg bg-success text-white hover:scale-110"
                         title="Save (Enter)"
                       >
                         <Check className="h-4 w-4" />
                       </button>
                       <button
+                        type="button"
                         onMouseDown={(e) => {
                           e.preventDefault(); // Prevent blur from firing
                           handleCancelEditTodo();
                         }}
+                        aria-label="Cancel editing task"
                         className="smooth-transition flex h-7 w-7 items-center justify-center rounded-lg bg-gray-200 text-gray-600 hover:scale-110 hover:bg-gray-300"
                         title="Cancel (Escape)"
                       >
@@ -456,12 +492,15 @@ export default function JournalEntryModal({
                 type="text"
                 value={newTodo}
                 onChange={(e) => setNewTodo(e.target.value)}
-                onKeyPress={handleTodoKeyPress}
+                onKeyDown={handleTodoKeyDown}
+                aria-label="Add a to-do item"
                 placeholder="Add a task... ✓"
                 className="flex-1 rounded-xl border border-border bg-surface px-3 sm:px-4 py-2 sm:py-3 text-sm font-medium text-text-primary placeholder-text-tertiary focus:border-secondary focus:outline-hidden focus:ring-4 focus:ring-secondary/10"
               />
               <button
+                type="button"
                 onClick={handleAddTodo}
+                aria-label="Add to-do"
                 className="smooth-transition flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-xl bg-secondary text-white hover:scale-110 hover:bg-secondary-hover shadow-md"
               >
                 <Plus className="h-5 w-5" />
@@ -484,7 +523,9 @@ export default function JournalEntryModal({
                 >
                   {tag}
                   <button
+                    type="button"
                     onClick={() => handleRemoveTag(tag)}
+                    aria-label={`Remove tag ${tag}`}
                     className="hover:scale-125"
                   >
                     <X className="h-3 w-3" />
@@ -495,7 +536,8 @@ export default function JournalEntryModal({
                 type="text"
                 value={newTag}
                 onChange={(e) => setNewTag(e.target.value)}
-                onKeyPress={handleKeyPress}
+                onKeyDown={handleTagKeyDown}
+                aria-label="Add a tag"
                 placeholder="Add tags... 🏷️"
                 className="min-w-[120px] sm:min-w-[180px] flex-1 rounded-xl border border-dashed border-secondary/30 bg-transparent px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-text-primary placeholder-text-tertiary focus:border-accent focus:outline-hidden focus:ring-4 focus:ring-accent/10"
               />
@@ -514,12 +556,14 @@ export default function JournalEntryModal({
             </div>
             <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
               <button
+                type="button"
                 onClick={handleDiscard}
                 className="smooth-transition flex-1 sm:flex-initial rounded-xl border border-border bg-surface px-4 sm:px-6 py-2.5 sm:py-3 text-sm font-bold text-text-secondary hover:scale-105 hover:border-primary hover:bg-primary/5 hover:text-primary"
               >
                 Discard
               </button>
               <button
+                type="button"
                 onClick={handleSave}
                 disabled={isSaving}
                 className="smooth-transition flex-1 sm:flex-initial rounded-xl bg-primary px-4 sm:px-8 py-2.5 sm:py-3 text-sm font-bold text-white shadow-lg hover:scale-105 hover:bg-primary-hover hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-60"

@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "check-types": "tsc --noEmit",
+    "test": "node -e \"console.log('No frontend tests configured')\"",
     "migrate-user": "npx tsx scripts/migrate-user.ts"
   },
   "dependencies": {

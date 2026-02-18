@@ -1,5 +1,5 @@
 import useSWR, { SWRConfiguration, mutate as globalMutate } from 'swr';
-import { fetchClient, FetchClientOptions } from './api';
+import { fetchClient } from './api';
 import { 
   getMonthlyCache, 
   saveMonthlyCache, 

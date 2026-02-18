@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { signIn as nextAuthSignIn } from "next-auth/react";
 import { Sparkles } from "lucide-react";
 
 export default function SignIn() {
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState<"google" | "credentials" | null>(
     null,
   );
@@ -20,7 +22,7 @@ export default function SignIn() {
       await nextAuthSignIn(provider, {
         callbackUrl: "/entry",
       });
-    } catch (err) {
+    } catch {
       setError("Unable to sign in. Please try again.");
       setIsLoading(null);
     }
@@ -42,9 +44,9 @@ export default function SignIn() {
         setError("Invalid email or password");
         setIsLoading(null);
       } else {
-        window.location.href = "/entry";
+        router.push("/entry");
       }
-    } catch (err) {
+    } catch {
       setError("Unable to sign in. Please try again.");
       setIsLoading(null);
     }
@@ -127,13 +129,18 @@ export default function SignIn() {
           {/* Email/Password Form */}
           <form onSubmit={handleCredentialsSignIn} className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-semibold uppercase tracking-wider text-text-tertiary">
+              <label
+                htmlFor="username"
+                className="text-sm font-semibold uppercase tracking-wider text-text-tertiary"
+              >
                 Email or Username
               </label>
               <input
+                id="username"
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
+                autoComplete="username"
                 className="w-full rounded-xl border border-border bg-surface px-4 py-3.5 text-base font-medium text-text-primary placeholder-text-tertiary transition-all focus:border-primary focus:outline-hidden focus:ring-4 focus:ring-primary/10 hover:border-primary/50"
                 placeholder="Enter your email or username"
                 required
@@ -141,13 +148,18 @@ export default function SignIn() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-semibold uppercase tracking-wider text-text-tertiary">
+              <label
+                htmlFor="password"
+                className="text-sm font-semibold uppercase tracking-wider text-text-tertiary"
+              >
                 Password
               </label>
               <input
+                id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
                 className="w-full rounded-xl border border-border bg-surface px-4 py-3.5 text-base font-medium text-text-primary placeholder-text-tertiary transition-all focus:border-primary focus:outline-hidden focus:ring-4 focus:ring-primary/10 hover:border-primary/50"
                 placeholder="Enter your password"
                 required

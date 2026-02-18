@@ -13,14 +13,6 @@ interface Todo {
   completed: boolean;
 }
 
-interface EntryData {
-  date: Date;
-  mood: string;
-  text?: string;
-  tags?: string[];
-  todos?: Todo[];
-}
-
 // Parse date from URL params and return entryDate, dateStr, and any validation error
 function useParsedDate(monthParam: string, dateParam: string) {
   return useMemo(() => {
