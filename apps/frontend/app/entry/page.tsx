@@ -65,6 +65,8 @@ function EntryPage() {
               <button
                 key={index}
                 onClick={() => handleMonthClick(index)}
+                aria-label={`${month} ${currentYear}`}
+                aria-current={isCurrentMonth ? "date" : undefined}
                 className={`smooth-transition group relative overflow-hidden rounded-xl border p-4 sm:p-8 text-center shadow-sm aspect-[3/2] sm:aspect-[4/3] ${
                   isCurrentMonth
                     ? "border-primary/50 bg-primary/5 ring-2 ring-primary/30 shadow-primary/20"

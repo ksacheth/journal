@@ -71,7 +71,10 @@ export default function SignIn() {
         {/* Sign In Card */}
         <div className="card-surface p-6 sm:p-8 lg:p-10 bg-white/50 backdrop-blur-sm">
           {error && (
-            <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-600">
+            <div
+              role="alert"
+              className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-600"
+            >
               {error}
             </div>
           )}

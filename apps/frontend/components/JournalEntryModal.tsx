@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { X, Hash, Plus, Check, Sparkles, GripVertical, Pencil } from "lucide-react";
+import { X, Hash, Plus, Check, Sparkles, GripVertical } from "lucide-react";
 import { MOODS, type MoodType } from "@/lib/constants";
 
 interface Todo {
@@ -421,7 +421,7 @@ export default function JournalEntryModal({
                           ? "text-text-tertiary line-through"
                           : "text-text-primary"
                       }`}
-                      title="Click to edit"
+                      title="Edit task"
                       aria-label={`Edit task: ${todo.text}`}
                     >
                       {todo.text}
@@ -431,15 +431,6 @@ export default function JournalEntryModal({
                   {/* Edit and delete buttons */}
                   {editingTodoId !== todo.id && (
                     <>
-                      <button
-                        type="button"
-                        onClick={() => handleStartEditTodo(todo)}
-                        aria-label={`Edit task: ${todo.text}`}
-                        className="smooth-transition text-text-secondary hover:scale-110 hover:text-primary"
-                        title="Edit task"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </button>
                       <button
                         type="button"
                         onClick={() => handleRemoveTodo(todo.id)}

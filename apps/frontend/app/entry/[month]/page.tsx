@@ -171,7 +171,7 @@ function CalendarPage() {
 
   const getDayAriaLabel = (day: number, mood: string | null, today: boolean) => {
     const date = new Date(currentYear, currentMonth, day);
-    const formatted = date.toLocaleDateString("en-US", {
+    const formatted = date.toLocaleDateString(undefined, {
       weekday: "long",
       year: "numeric",
       month: "long",

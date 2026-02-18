@@ -7,7 +7,7 @@
     "dev": "bun --watch src/index.ts",
     "build": "echo 'No build step needed for Bun'",
     "start": "bun src/index.ts",
-    "lint": "bunx tsc --noEmit",
+    "lint": "echo 'No dedicated backend lint step; run check-types for TypeScript checks'",
     "check-types": "bunx tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
