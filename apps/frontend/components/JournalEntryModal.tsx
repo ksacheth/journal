@@ -50,6 +50,12 @@ const timeFormatter = new Intl.DateTimeFormat("en-US", {
   minute: "2-digit",
 });
 
+const modalTitleId = "journal-entry-modal-title";
+const textAreaId = "journal-entry-text";
+
+const formatDate = (date: Date, time: Date) =>
+  `${dateFormatter.format(date)} • ${timeFormatter.format(time)}`;
+
 export default function JournalEntryModal({
   isOpen,
   onClose,
@@ -73,6 +79,10 @@ export default function JournalEntryModal({
   const [dragOverTodoId, setDragOverTodoId] = useState<string | null>(null);
   const [editingTodoId, setEditingTodoId] = useState<string | null>(null);
   const [editingTodoText, setEditingTodoText] = useState<string>("");
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const textAreaRef = useRef<HTMLTextAreaElement>(null);
+  const previouslyFocusedElementRef = useRef<HTMLElement | null>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -83,11 +93,73 @@ export default function JournalEntryModal({
     return () => clearInterval(timer);
   }, []);
 
-  const modalTitleId = "journal-entry-modal-title";
-  const textAreaId = "journal-entry-text";
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
 
-  const formatDate = (date: Date, time: Date) =>
-    `${dateFormatter.format(date)} • ${timeFormatter.format(time)}`;
+    previouslyFocusedElementRef.current =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    (textAreaRef.current ?? closeButtonRef.current)?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+
+      if (event.key !== "Tab") {
+        return;
+      }
+
+      const dialog = dialogRef.current;
+      if (!dialog) {
+        return;
+      }
+
+      const focusable = Array.from(
+        dialog.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      );
+
+      if (focusable.length === 0) {
+        event.preventDefault();
+        dialog.focus();
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+      const outsideDialog = !active || !dialog.contains(active);
+
+      if (event.shiftKey) {
+        if (outsideDialog || active === first) {
+          event.preventDefault();
+          last.focus();
+        }
+        return;
+      }
+
+      if (outsideDialog || active === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      const previous = previouslyFocusedElementRef.current;
+      if (previous && document.contains(previous)) {
+        previous.focus();
+      }
+    };
+  }, [isOpen, onClose]);
 
   const handleAddTag = () => {
     if (newTag.trim() && !tags.includes(newTag.trim())) {
@@ -268,6 +340,8 @@ export default function JournalEntryModal({
 
         {/* Modal */}
         <div
+          ref={dialogRef}
+          tabIndex={-1}
           role="dialog"
           aria-modal="true"
           aria-labelledby={modalTitleId}
@@ -275,6 +349,7 @@ export default function JournalEntryModal({
         >
           {/* Close Button - Saves and exits */}
           <button
+            ref={closeButtonRef}
             type="button"
             onClick={handleSave}
             disabled={isSaving}
@@ -332,6 +407,7 @@ export default function JournalEntryModal({
                       : "none",
                 }}
                 aria-label={mood.label}
+                aria-pressed={selectedMood === mood.value}
               >
                 {mood.emoji}
               </button>
@@ -344,6 +420,7 @@ export default function JournalEntryModal({
               Journal entry text
             </label>
             <textarea
+              ref={textAreaRef}
               id={textAreaId}
               value={text}
               onChange={(e) => setText(e.target.value)}
@@ -430,17 +507,15 @@ export default function JournalEntryModal({
                   
                   {/* Edit and delete buttons */}
                   {editingTodoId !== todo.id && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveTodo(todo.id)}
-                        aria-label={`Delete task: ${todo.text}`}
-                        className="smooth-transition text-text-secondary hover:scale-110 hover:text-error"
-                        title="Delete task"
-                      >
-                        <X className="h-5 w-5" />
-                      </button>
-                    </>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveTodo(todo.id)}
+                      aria-label={`Delete task: ${todo.text}`}
+                      className="smooth-transition text-text-secondary hover:scale-110 hover:text-error"
+                      title="Delete task"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
                   )}
                   
                   {/* Save/Cancel buttons when editing */}

@@ -17,44 +17,44 @@ interface Entry {
   mood: string;
 }
 
-function CalendarPage() {
-  const router = useRouter();
-  const params = useParams();
-  const monthParam = params.month as string;
+function parseMonthParam(value?: string | null) {
+  const today = new Date();
+  const fallback = { month: today.getMonth(), year: today.getFullYear() };
 
-  const parseMonthParam = (value?: string | null) => {
-    const today = new Date();
-    const fallback = { month: today.getMonth(), year: today.getFullYear() };
+  if (!value) {
+    return fallback;
+  }
 
-    if (!value) {
+  if (value.includes("-")) {
+    const [yearStr, monthStr] = value.split("-");
+    if (!yearStr || !monthStr) {
       return fallback;
     }
 
-    if (value.includes("-")) {
-      const [yearStr, monthStr] = value.split("-");
-      if (!yearStr || !monthStr) {
-        return fallback;
-      }
+    const parsedYear = Number.parseInt(yearStr, 10);
+    const parsedMonth = Number.parseInt(monthStr, 10) - 1;
 
-      const parsedYear = Number.parseInt(yearStr, 10);
-      const parsedMonth = Number.parseInt(monthStr, 10) - 1;
-
-      if (!Number.isFinite(parsedYear) || Number.isNaN(parsedMonth)) {
-        return fallback;
-      }
-
-      const month = Math.min(11, Math.max(0, parsedMonth));
-      return { month, year: parsedYear };
-    }
-
-    const parsedMonth = Number.parseInt(value, 10) - 1;
-    if (Number.isNaN(parsedMonth)) {
+    if (!Number.isFinite(parsedYear) || Number.isNaN(parsedMonth)) {
       return fallback;
     }
 
     const month = Math.min(11, Math.max(0, parsedMonth));
-    return { month, year: fallback.year };
-  };
+    return { month, year: parsedYear };
+  }
+
+  const parsedMonth = Number.parseInt(value, 10) - 1;
+  if (Number.isNaN(parsedMonth)) {
+    return fallback;
+  }
+
+  const month = Math.min(11, Math.max(0, parsedMonth));
+  return { month, year: fallback.year };
+}
+
+function CalendarPage() {
+  const router = useRouter();
+  const params = useParams();
+  const monthParam = params.month as string;
 
   const { month: currentMonth, year: currentYear } = useMemo(
     () => parseMonthParam(monthParam),

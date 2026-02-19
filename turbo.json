@@ -14,7 +14,7 @@
       "dependsOn": ["^check-types"]
     },
     "test": {
-      "dependsOn": ["^test"],
+      "dependsOn": ["^build"],
       "env": ["MONGODB_URL", "AUTH_SECRET", "JWT_SECRET"],
       "cache": false
     },
