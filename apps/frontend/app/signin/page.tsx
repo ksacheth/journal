@@ -44,6 +44,7 @@ export default function SignIn() {
         setError("Invalid email/username or password");
         setIsLoading(null);
       } else {
+        setIsLoading(null);
         router.push("/entry");
       }
     } catch {

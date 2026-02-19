@@ -38,14 +38,14 @@ const moods = Object.entries(MOODS).map(([value, data]) => ({
   color: data.color,
 }));
 
-const dateFormatter = new Intl.DateTimeFormat("en-US", {
+const dateFormatter = new Intl.DateTimeFormat(undefined, {
   weekday: "long",
   month: "long",
   day: "numeric",
   year: "numeric",
 });
 
-const timeFormatter = new Intl.DateTimeFormat("en-US", {
+const timeFormatter = new Intl.DateTimeFormat(undefined, {
   hour: "numeric",
   minute: "2-digit",
 });
@@ -82,6 +82,7 @@ export default function JournalEntryModal({
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
+  const onCloseRef = useRef(onClose);
   const previouslyFocusedElementRef = useRef<HTMLElement | null>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
 
@@ -92,6 +93,10 @@ export default function JournalEntryModal({
 
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -107,7 +112,7 @@ export default function JournalEntryModal({
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
-        onClose();
+        onCloseRef.current();
         return;
       }
 
@@ -159,7 +164,7 @@ export default function JournalEntryModal({
         previous.focus();
       }
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   const handleAddTag = () => {
     if (newTag.trim() && !tags.includes(newTag.trim())) {
@@ -309,7 +314,7 @@ export default function JournalEntryModal({
       });
       // Don't clear state here - component will unmount on navigation
       // Clearing causes a flash of empty content before the route changes
-      onClose();
+      onCloseRef.current();
     } catch (error) {
       console.error("Error saving entry:", error);
     } finally {
@@ -320,7 +325,7 @@ export default function JournalEntryModal({
   const handleDiscard = () => {
     // Don't clear state here - component will unmount on navigation
     // Clearing causes a flash of empty content before the route changes
-    onClose();
+    onCloseRef.current();
   };
 
   if (!isOpen) return null;
