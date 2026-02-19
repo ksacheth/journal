@@ -279,8 +279,8 @@ export default function JournalEntryModal({
         todos.map((todo) =>
           todo.id === editingTodoId
             ? { ...todo, text: editingTodoText.trim() }
-            : todo
-        )
+            : todo,
+        ),
       );
     }
     setEditingTodoId(null);
@@ -298,6 +298,7 @@ export default function JournalEntryModal({
       handleSaveEditTodo();
     } else if (e.key === "Escape") {
       e.preventDefault();
+      e.nativeEvent.stopImmediatePropagation();
       handleCancelEditTodo();
     }
   };
@@ -481,7 +482,7 @@ export default function JournalEntryModal({
                   >
                     {todo.completed && <Check className="h-3.5 w-3.5" />}
                   </button>
-                  
+
                   {/* Todo text or edit input */}
                   {editingTodoId === todo.id ? (
                     <input
@@ -491,6 +492,7 @@ export default function JournalEntryModal({
                       onChange={(e) => setEditingTodoText(e.target.value)}
                       onKeyDown={handleEditTodoKeyDown}
                       onBlur={handleSaveEditTodo}
+                      aria-label="Edit task"
                       className="flex-1 rounded-lg border border-primary bg-white px-2 py-1 text-sm font-medium text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                       placeholder="Edit task..."
                     />
@@ -509,7 +511,7 @@ export default function JournalEntryModal({
                       {todo.text}
                     </button>
                   )}
-                  
+
                   {/* Edit and delete buttons */}
                   {editingTodoId !== todo.id && (
                     <button
@@ -522,7 +524,7 @@ export default function JournalEntryModal({
                       <X className="h-5 w-5" />
                     </button>
                   )}
-                  
+
                   {/* Save/Cancel buttons when editing */}
                   {editingTodoId === todo.id && (
                     <div className="flex gap-1">

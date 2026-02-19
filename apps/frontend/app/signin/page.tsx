@@ -59,7 +59,7 @@ export default function SignIn() {
         {/* Header with Icon */}
         <div className="mb-6 sm:mb-8 text-center">
           <div className="pulse-glow mx-auto mb-4 sm:mb-6 flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-2xl bg-primary text-white shadow-lg shadow-primary/30">
-            <Sparkles className="h-8 w-8 sm:h-10 sm:w-10" />
+            <Sparkles aria-hidden="true" className="h-8 w-8 sm:h-10 sm:w-10" />
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-text-primary">
             Welcome Back
