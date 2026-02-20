@@ -1,7 +1,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 interface AuthState {
@@ -29,7 +29,6 @@ export function useAuth({
   redirectIfAuth?: string | null;
 } = {}): AuthState {
   const router = useRouter();
-  const pathname = usePathname();
   const { data: session, status } = useSession();
 
   const isLoading = status === "loading";
@@ -52,7 +51,6 @@ export function useAuth({
     redirectTo,
     redirectIfAuth,
     router,
-    pathname,
   ]);
 
   return {

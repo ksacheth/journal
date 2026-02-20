@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { signIn as nextAuthSignIn } from "next-auth/react";
 import { Sparkles } from "lucide-react";
 
 export default function SignIn() {
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState<"google" | "credentials" | null>(
     null,
   );
@@ -20,7 +22,7 @@ export default function SignIn() {
       await nextAuthSignIn(provider, {
         callbackUrl: "/entry",
       });
-    } catch (err) {
+    } catch {
       setError("Unable to sign in. Please try again.");
       setIsLoading(null);
     }
@@ -39,12 +41,13 @@ export default function SignIn() {
       });
 
       if (result?.error) {
-        setError("Invalid email or password");
+        setError("Invalid email/username or password");
         setIsLoading(null);
       } else {
-        window.location.href = "/entry";
+        setIsLoading(null);
+        router.push("/entry");
       }
-    } catch (err) {
+    } catch {
       setError("Unable to sign in. Please try again.");
       setIsLoading(null);
     }
@@ -56,7 +59,7 @@ export default function SignIn() {
         {/* Header with Icon */}
         <div className="mb-6 sm:mb-8 text-center">
           <div className="pulse-glow mx-auto mb-4 sm:mb-6 flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-2xl bg-primary text-white shadow-lg shadow-primary/30">
-            <Sparkles className="h-8 w-8 sm:h-10 sm:w-10" />
+            <Sparkles aria-hidden="true" className="h-8 w-8 sm:h-10 sm:w-10" />
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-text-primary">
             Welcome Back
@@ -69,7 +72,10 @@ export default function SignIn() {
         {/* Sign In Card */}
         <div className="card-surface p-6 sm:p-8 lg:p-10 bg-white/50 backdrop-blur-sm">
           {error && (
-            <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-600">
+            <div
+              role="alert"
+              className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-600"
+            >
               {error}
             </div>
           )}
@@ -85,7 +91,7 @@ export default function SignIn() {
               {isLoading === "google" ? (
                 <div className="h-5 w-5 animate-spin rounded-full border-2 border-gray-300 border-t-primary" />
               ) : (
-                <svg className="h-5 w-5" viewBox="0 0 24 24">
+                <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 24 24">
                   <path
                     fill="#4285F4"
                     d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -127,13 +133,18 @@ export default function SignIn() {
           {/* Email/Password Form */}
           <form onSubmit={handleCredentialsSignIn} className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-semibold uppercase tracking-wider text-text-tertiary">
+              <label
+                htmlFor="username"
+                className="text-sm font-semibold uppercase tracking-wider text-text-tertiary"
+              >
                 Email or Username
               </label>
               <input
+                id="username"
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
+                autoComplete="username"
                 className="w-full rounded-xl border border-border bg-surface px-4 py-3.5 text-base font-medium text-text-primary placeholder-text-tertiary transition-all focus:border-primary focus:outline-hidden focus:ring-4 focus:ring-primary/10 hover:border-primary/50"
                 placeholder="Enter your email or username"
                 required
@@ -141,13 +152,18 @@ export default function SignIn() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-semibold uppercase tracking-wider text-text-tertiary">
+              <label
+                htmlFor="password"
+                className="text-sm font-semibold uppercase tracking-wider text-text-tertiary"
+              >
                 Password
               </label>
               <input
+                id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
                 className="w-full rounded-xl border border-border bg-surface px-4 py-3.5 text-base font-medium text-text-primary placeholder-text-tertiary transition-all focus:border-primary focus:outline-hidden focus:ring-4 focus:ring-primary/10 hover:border-primary/50"
                 placeholder="Enter your password"
                 required

@@ -17,52 +17,49 @@ interface Entry {
   mood: string;
 }
 
+function parseMonthParam(value?: string | null) {
+  const today = new Date();
+  const fallback = { month: today.getMonth(), year: today.getFullYear() };
+
+  if (!value) {
+    return fallback;
+  }
+
+  if (value.includes("-")) {
+    const [yearStr, monthStr] = value.split("-");
+    if (!yearStr || !monthStr) {
+      return fallback;
+    }
+
+    const parsedYear = Number.parseInt(yearStr, 10);
+    const parsedMonth = Number.parseInt(monthStr, 10) - 1;
+
+    if (!Number.isFinite(parsedYear) || Number.isNaN(parsedMonth)) {
+      return fallback;
+    }
+
+    const month = Math.min(11, Math.max(0, parsedMonth));
+    return { month, year: parsedYear };
+  }
+
+  const parsedMonth = Number.parseInt(value, 10) - 1;
+  if (Number.isNaN(parsedMonth)) {
+    return fallback;
+  }
+
+  const month = Math.min(11, Math.max(0, parsedMonth));
+  return { month, year: fallback.year };
+}
+
 function CalendarPage() {
   const router = useRouter();
   const params = useParams();
   const monthParam = params.month as string;
 
-  const parseMonthParam = (value?: string | null) => {
-    const today = new Date();
-    const fallback = { month: today.getMonth(), year: today.getFullYear() };
-
-    if (!value) {
-      return fallback;
-    }
-
-    if (value.includes("-")) {
-      const [yearStr, monthStr] = value.split("-");
-      if (!yearStr || !monthStr) {
-        return fallback;
-      }
-
-      const parsedYear = Number.parseInt(yearStr, 10);
-      const parsedMonth = Number.parseInt(monthStr, 10) - 1;
-
-      if (!Number.isFinite(parsedYear) || Number.isNaN(parsedMonth)) {
-        return fallback;
-      }
-
-      const month = Math.min(11, Math.max(0, parsedMonth));
-      return { month, year: parsedYear };
-    }
-
-    const parsedMonth = Number.parseInt(value, 10) - 1;
-    if (Number.isNaN(parsedMonth)) {
-      return fallback;
-    }
-
-    const month = Math.min(11, Math.max(0, parsedMonth));
-    return { month, year: fallback.year };
-  };
-
-  const getInitialMonth = () => {
-    return parseMonthParam(monthParam);
-  };
-
-  const initial = getInitialMonth();
-  const [currentMonth, setCurrentMonth] = useState<number>(initial.month);
-  const [currentYear, setCurrentYear] = useState<number>(initial.year);
+  const { month: currentMonth, year: currentYear } = useMemo(
+    () => parseMonthParam(monthParam),
+    [monthParam],
+  );
   
   // Use SWR for data fetching with automatic caching and revalidation
   const { 
@@ -115,7 +112,7 @@ function CalendarPage() {
     const merged = new Map<string, Entry>();
     
     // Add server entries first
-    serverEntries.forEach((entry) => {
+    serverEntries.forEach((entry: Entry) => {
       merged.set(entry.date, entry);
     });
     
@@ -172,6 +169,22 @@ function CalendarPage() {
     router.push(`/entry/${currentYear}-${monthStr}/${dateStr}`);
   };
 
+  const getDayAriaLabel = (day: number, mood: string | null, today: boolean) => {
+    const date = new Date(currentYear, currentMonth, day);
+    const formatted = date.toLocaleDateString(undefined, {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+
+    if (mood) {
+      return `${formatted}, mood ${mood}${today ? ", today" : ""}`;
+    }
+
+    return `${formatted}${today ? ", today" : ""}`;
+  };
+
   const handleMonthChange = (direction: "prev" | "next") => {
     let newMonth = currentMonth;
     let newYear = currentYear;
@@ -208,6 +221,7 @@ function CalendarPage() {
         <div className="bounce-in mb-8 flex items-center justify-between">
           <button
             onClick={() => router.push("/entry")}
+            aria-label="Back to month selection"
             className="smooth-transition flex items-center gap-2 rounded-xl border-2 border-accent bg-surface p-2.5 sm:px-5 sm:py-3 text-sm font-bold text-text-primary shadow-md hover:scale-105 hover:border-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-accent/10 hover:shadow-lg"
           >
             <CalendarDays className="h-5 w-5 text-accent" />
@@ -216,6 +230,7 @@ function CalendarPage() {
 
           <button
             onClick={handleSignOut}
+            aria-label="Sign out"
             className="smooth-transition flex items-center gap-2 rounded-xl border-2 border-primary/30 bg-surface p-2.5 sm:px-5 sm:py-3 text-sm font-bold text-text-primary shadow-md hover:scale-105 hover:border-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-primary/20 hover:shadow-lg"
           >
             <LogOut className="h-5 w-5 text-primary" />
@@ -227,6 +242,7 @@ function CalendarPage() {
         <div className="mb-4 sm:mb-8 flex items-center justify-between">
           <button
             onClick={() => handleMonthChange("prev")}
+            aria-label="Previous month"
             className="smooth-transition flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl border-2 border-secondary bg-surface text-secondary shadow-md hover:scale-110 hover:border-primary hover:bg-gradient-to-br hover:from-primary/10 hover:to-secondary/10 hover:text-primary hover:shadow-lg"
           >
             <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
@@ -245,6 +261,7 @@ function CalendarPage() {
 
           <button
             onClick={() => handleMonthChange("next")}
+            aria-label="Next month"
             className="smooth-transition flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl border-2 border-secondary bg-surface text-secondary shadow-md hover:scale-110 hover:border-primary hover:bg-gradient-to-br hover:from-primary/10 hover:to-secondary/10 hover:text-primary hover:shadow-lg"
           >
             <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
@@ -297,6 +314,7 @@ function CalendarPage() {
                   <button
                     key={day}
                     onClick={() => handleDateClick(day)}
+                    aria-label={getDayAriaLabel(day, mood, today)}
                     className={`smooth-transition group relative aspect-[1/1.3] sm:aspect-square overflow-hidden rounded-lg sm:rounded-xl border-2 ${
                       today
                         ? "pulse-glow border-primary bg-gradient-to-br from-primary/20 to-accent/20"
