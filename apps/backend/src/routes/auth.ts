@@ -62,7 +62,10 @@ router.post("/signin", async (req, res) => {
     if (existingUser && passwordMatch) {
       // Use jose for JWT signing (consistent with auth middleware)
       const encoder = new TextEncoder();
-      const token = await new SignJWT({ userId: existingUser.id })
+      const token = await new SignJWT({
+        sub: existingUser.id,
+        userId: existingUser.id,
+      })
         .setProtectedHeader({ alg: "HS256" })
         .setIssuedAt()
         .setExpirationTime("7d")
